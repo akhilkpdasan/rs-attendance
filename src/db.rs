@@ -1,11 +1,11 @@
-use std::io;
 use actix::prelude::*;
 use diesel;
 use diesel::prelude::*;
+use std::io;
 
 use models;
 
-pub struct DbExecutor{
+pub struct DbExecutor {
     conn: PgConnection,
 }
 
@@ -25,7 +25,7 @@ impl Actor for DbExecutor {
 //}
 
 pub struct GetStudent {
-    id: String
+    id: String,
 }
 
 impl Message for GetStudent {
@@ -38,11 +38,12 @@ impl Handler<GetStudent> for DbExecutor {
     fn handle(&mut self, msg: GetStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
-        match students.filter(id.eq(msg.id)).load::<models::Student>(&self.conn) {
-            Ok(mut items) =>
-                Ok(items.pop().unwrap()),
-            Err(_) =>
-                Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+        match students
+            .filter(id.eq(msg.id))
+            .load::<models::Student>(&self.conn)
+        {
+            Ok(mut items) => Ok(items.pop().unwrap()),
+            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
 }
@@ -86,11 +87,12 @@ impl Handler<UpdateStudent> for DbExecutor {
             .set(attendance.eq(msg.attendance))
             .execute(&self.conn);
 
-        match students.filter(id.eq(msg.id)).load::<models::Student>(&self.conn) {
-            Ok(mut items) =>
-                Ok(items.pop().unwrap()),
-            Err(_) =>
-                Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+        match students
+            .filter(id.eq(msg.id))
+            .load::<models::Student>(&self.conn)
+        {
+            Ok(mut items) => Ok(items.pop().unwrap()),
+            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
 }
@@ -122,18 +124,18 @@ impl Handler<PostStudent> for DbExecutor {
             .values(&new_student)
             .execute(&self.conn);
 
-        match students.filter(id.eq(msg.id)).load::<models::Student>(&self.conn) {
-            Ok(mut items) =>
-                Ok(items.pop().unwrap()),
-            Err(_) =>
-                Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+        match students
+            .filter(id.eq(msg.id))
+            .load::<models::Student>(&self.conn)
+        {
+            Ok(mut items) => Ok(items.pop().unwrap()),
+            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
 }
 
-
 pub struct DeleteStudent {
-    id: String
+    id: String,
 }
 
 impl Message for DeleteStudent {
@@ -147,10 +149,8 @@ impl Handler<DeleteStudent> for DbExecutor {
         use schema::students::dsl::*;
 
         match diesel::delete(students.filter(id.eq(msg.id))).execute(&self.conn) {
-            Ok(_) =>
-                Ok(()),
-            Err(_) =>
-                Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+            Ok(_) => Ok(()),
+            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
 }
