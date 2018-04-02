@@ -1,8 +1,8 @@
-use r2d2_diesel::ConnectionManager;
-use r2d2::Pool;
 use actix::prelude::*;
 use diesel;
 use diesel::prelude::*;
+use r2d2::Pool;
+use r2d2_diesel::ConnectionManager;
 use std::io;
 
 use models;
@@ -10,7 +10,6 @@ use models;
 pub struct DbExecutor {
     pub pool: Pool<ConnectionManager<PgConnection>>,
 }
-
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;
@@ -31,10 +30,7 @@ impl Handler<GetStudent> for DbExecutor {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
-        match students
-            .filter(id.eq(msg.id))
-            .load::<models::Student>(conn)
-        {
+        match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
             Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
@@ -82,10 +78,7 @@ impl Handler<UpdateStudent> for DbExecutor {
             .set(attendance.eq(msg.attendance))
             .execute(conn);
 
-        match students
-            .filter(id.eq(msg.id))
-            .load::<models::Student>(conn)
-        {
+        match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
             Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
@@ -120,10 +113,7 @@ impl Handler<PostStudent> for DbExecutor {
             .values(&new_student)
             .execute(conn);
 
-        match students
-            .filter(id.eq(msg.id))
-            .load::<models::Student>(conn)
-        {
+        match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
             Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }

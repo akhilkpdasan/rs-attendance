@@ -2,26 +2,26 @@
 extern crate diesel;
 #[macro_use]
 extern crate serde_derive;
-extern crate r2d2;
-extern crate r2d2_diesel;
 extern crate actix;
 extern crate actix_web;
+extern crate dotenv;
 extern crate futures;
 extern crate num_cpus;
+extern crate r2d2;
+extern crate r2d2_diesel;
 extern crate serde;
 extern crate serde_json;
-extern crate dotenv;
 
 use actix::SyncArbiter;
 use actix::{Addr, Syn};
-use std::env;
-use diesel::prelude::*;
 use actix_web::*;
-use dotenv::dotenv;
 use db::*;
-use r2d2_diesel::ConnectionManager;
+use diesel::prelude::*;
+use dotenv::dotenv;
 use futures::future::Future;
 use models::Student;
+use r2d2_diesel::ConnectionManager;
+use std::env;
 
 mod db;
 mod models;
@@ -123,10 +123,10 @@ fn main() {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let manager = ConnectionManager::<PgConnection>::new(db_url);
-    let pool = r2d2::Pool::builder().build(manager).expect("Failed to create pool.");
-    let addr = SyncArbiter::start(3, move || {
-        DbExecutor{pool: pool.clone()}
-    });
+    let pool = r2d2::Pool::builder()
+        .build(manager)
+        .expect("Failed to create pool.");
+    let addr = SyncArbiter::start(3, move || DbExecutor { pool: pool.clone() });
 
     HttpServer::new(move || {
         Application::with_state(State { db: addr.clone() })
