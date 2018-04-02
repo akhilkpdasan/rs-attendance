@@ -8,8 +8,3 @@ pub struct Student {
     pub roll_no: i32,
     pub attendance: f32,
 }
-
-#[derive(Serialize)]
-pub struct Students {
-    students: Vec<Student>,
-}

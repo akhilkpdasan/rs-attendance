@@ -1,31 +1,35 @@
+extern crate dotenv;
+
 use actix::prelude::*;
 use diesel;
 use diesel::prelude::*;
+use std::env;
 use std::io;
 
 use models;
 
 pub struct DbExecutor {
-    conn: PgConnection,
+    pub conn: PgConnection,
 }
 
-unsafe impl Send for DbExecutor {}
+impl DbExecutor {
+    pub fn new() -> DbExecutor {
+        dotenv::dotenv().ok();
+
+        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        DbExecutor {
+            conn: PgConnection::establish(&db_url)
+                .expect(&format!("Error connecting to {}", db_url)),
+        }
+    }
+}
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;
 }
 
-//impl DbExecutor {
-//    pub fn new(db_url: &str) -> DbExecutor {
-//        DbExecutor{
-//            conn: PgConnection::establish(db_url)
-//                .expect(&format!("Error connecting to {}", db_url))
-//        }
-//    }
-//}
-
 pub struct GetStudent {
-    id: String,
+    pub id: String,
 }
 
 impl Message for GetStudent {
@@ -61,15 +65,15 @@ impl Handler<GetStudents> for DbExecutor {
         use schema::students::dsl::*;
 
         match students.load::<models::Student>(&self.conn) {
-            Ok(mut items) => Ok(items),
+            Ok(items) => Ok(items),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
 }
 
 pub struct UpdateStudent {
-    id: String,
-    attendance: f32,
+    pub id: String,
+    pub attendance: f32,
 }
 
 impl Message for UpdateStudent {
@@ -98,10 +102,10 @@ impl Handler<UpdateStudent> for DbExecutor {
 }
 
 pub struct PostStudent {
-    id: String,
-    name: String,
-    roll_no: i32,
-    attendance: f32,
+    pub id: String,
+    pub name: String,
+    pub roll_no: i32,
+    pub attendance: f32,
 }
 
 impl Message for PostStudent {
@@ -135,7 +139,7 @@ impl Handler<PostStudent> for DbExecutor {
 }
 
 pub struct DeleteStudent {
-    id: String,
+    pub id: String,
 }
 
 impl Message for DeleteStudent {
