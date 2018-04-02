@@ -1,28 +1,16 @@
-extern crate dotenv;
-
+use r2d2_diesel::ConnectionManager;
+use r2d2::Pool;
 use actix::prelude::*;
 use diesel;
 use diesel::prelude::*;
-use std::env;
 use std::io;
 
 use models;
 
 pub struct DbExecutor {
-    pub conn: PgConnection,
+    pub pool: Pool<ConnectionManager<PgConnection>>,
 }
 
-impl DbExecutor {
-    pub fn new() -> DbExecutor {
-        dotenv::dotenv().ok();
-
-        let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        DbExecutor {
-            conn: PgConnection::establish(&db_url)
-                .expect(&format!("Error connecting to {}", db_url)),
-        }
-    }
-}
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;
@@ -42,9 +30,10 @@ impl Handler<GetStudent> for DbExecutor {
     fn handle(&mut self, msg: GetStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
+        let conn: &PgConnection = &self.pool.get().unwrap();
         match students
             .filter(id.eq(msg.id))
-            .load::<models::Student>(&self.conn)
+            .load::<models::Student>(conn)
         {
             Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
@@ -64,7 +53,8 @@ impl Handler<GetStudents> for DbExecutor {
     fn handle(&mut self, _: GetStudents, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
-        match students.load::<models::Student>(&self.conn) {
+        let conn: &PgConnection = &self.pool.get().unwrap();
+        match students.load::<models::Student>(conn) {
             Ok(items) => Ok(items),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
@@ -86,14 +76,15 @@ impl Handler<UpdateStudent> for DbExecutor {
     fn handle(&mut self, msg: UpdateStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
+        let conn: &PgConnection = &self.pool.get().unwrap();
         let _ = diesel::update(students)
             .filter(id.eq(&msg.id))
             .set(attendance.eq(msg.attendance))
-            .execute(&self.conn);
+            .execute(conn);
 
         match students
             .filter(id.eq(msg.id))
-            .load::<models::Student>(&self.conn)
+            .load::<models::Student>(conn)
         {
             Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
@@ -118,6 +109,7 @@ impl Handler<PostStudent> for DbExecutor {
     fn handle(&mut self, msg: PostStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
+        let conn: &PgConnection = &self.pool.get().unwrap();
         let new_student = models::Student {
             id: msg.id.clone(),
             name: msg.name,
@@ -126,11 +118,11 @@ impl Handler<PostStudent> for DbExecutor {
         };
         let _ = diesel::insert_into(students)
             .values(&new_student)
-            .execute(&self.conn);
+            .execute(conn);
 
         match students
             .filter(id.eq(msg.id))
-            .load::<models::Student>(&self.conn)
+            .load::<models::Student>(conn)
         {
             Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
@@ -152,7 +144,8 @@ impl Handler<DeleteStudent> for DbExecutor {
     fn handle(&mut self, msg: DeleteStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
-        match diesel::delete(students.filter(id.eq(msg.id))).execute(&self.conn) {
+        let conn: &PgConnection = &self.pool.get().unwrap();
+        match diesel::delete(students.filter(id.eq(msg.id))).execute(conn) {
             Ok(_) => Ok(()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
