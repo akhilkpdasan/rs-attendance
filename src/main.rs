@@ -130,6 +130,7 @@ fn main() {
 
     HttpServer::new(move || {
         Application::with_state(State { db: addr.clone() })
+            .middleware(middleware::Logger::default())
             .resource("/students", |r| {
                 r.method(Method::GET).a(get_all);
                 r.method(Method::POST).a(new);
