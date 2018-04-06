@@ -55,7 +55,7 @@ impl Handler<GetStudents> for DbExecutor {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
-        match students.load::<models::Student>(conn) {
+        match students.order(roll_no).load::<models::Student>(conn) {
             Ok(items) => Ok(items),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
