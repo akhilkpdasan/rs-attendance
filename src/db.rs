@@ -7,26 +7,6 @@ use std::io;
 
 use models;
 
-#[derive(Serialize, Deserialize)]
-pub struct StudentResponseList {
-    status: i32,
-    message: String,
-    data: Vec<models::Student>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct StudentResponse {
-    status: i32,
-    message: String,
-    data: models::Student,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DeleteResponse {
-    status: i32,
-    message: String,
-}
-
 pub struct DbExecutor {
     pub pool: Pool<ConnectionManager<PgConnection>>,
 }
@@ -40,71 +20,38 @@ pub struct GetStudent {
 }
 
 impl Message for GetStudent {
-    type Result = io::Result<StudentResponse>;
+    type Result = io::Result<models::Student>;
 }
 
 impl Handler<GetStudent> for DbExecutor {
-    type Result = io::Result<StudentResponse>;
+    type Result = io::Result<models::Student>;
 
     fn handle(&mut self, msg: GetStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
-
-        let student_result = students.filter(id.eq(msg.id)).load::<models::Student>(conn);
-
-        let student = match &student_result {
-            Ok(some_student) => match some_student.first() {
-                Some(student) => Some(student),
-                None => None,
-            },
-            Err(_) => None,
-        };
-
-        match student {
-            Some(s) => Ok(StudentResponse {
-                status: 200,
-                message: "Student Attendance Info".to_string(),
-                data: models::Student {
-                    id: s.id.clone(),
-                    name: s.name.clone(),
-                    roll_no: s.roll_no,
-                    attendance: s.attendance,
-                },
-            }),
-            None => Ok(StudentResponse {
-                status: 400,
-                message: "Student no found".to_string(),
-                data: models::Student {
-                    id: "".to_string(),
-                    name: "".to_string(),
-                    roll_no: 0,
-                    attendance: 0.0,
-                },
-            }),
+        match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
+            Ok(mut items) => Ok(items.pop().unwrap()),
+            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
 }
 
-pub struct StudentsList;
+pub struct GetStudents;
 
-impl Message for StudentsList {
-    type Result = io::Result<StudentResponseList>;
+impl Message for GetStudents {
+    type Result = io::Result<Vec<models::Student>>;
 }
 
-impl Handler<StudentsList> for DbExecutor {
-    type Result = io::Result<StudentResponseList>;
+impl Handler<GetStudents> for DbExecutor {
+    type Result = io::Result<Vec<models::Student>>;
 
-    fn handle(&mut self, _: StudentsList, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _: GetStudents, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
         match students.load::<models::Student>(conn) {
-            Ok(items) => Ok(StudentResponseList {
-                status: 200,
-                message: "Students Attendance List".to_string(),
-                data: items,
-            }),
+            Ok(items) => Ok(items),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
@@ -116,11 +63,11 @@ pub struct UpdateStudent {
 }
 
 impl Message for UpdateStudent {
-    type Result = io::Result<StudentResponse>;
+    type Result = io::Result<models::Student>;
 }
 
 impl Handler<UpdateStudent> for DbExecutor {
-    type Result = io::Result<StudentResponse>;
+    type Result = io::Result<models::Student>;
 
     fn handle(&mut self, msg: UpdateStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
@@ -132,28 +79,7 @@ impl Handler<UpdateStudent> for DbExecutor {
             .execute(conn);
 
         match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
-            Ok(mut items) => match items.pop() {
-                Some(s) => Ok(StudentResponse {
-                    status: 200,
-                    message: "Student Record Updated".to_string(),
-                    data: models::Student {
-                        id: s.id,
-                        name: s.name,
-                        roll_no: s.roll_no,
-                        attendance: s.attendance,
-                    },
-                }),
-                None => Ok(StudentResponse {
-                    status: 400,
-                    message: "Student not found".to_string(),
-                    data: models::Student {
-                        id: "".to_string(),
-                        name: "".to_string(),
-                        roll_no: 0,
-                        attendance: 0.0,
-                    },
-                }),
-            },
+            Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
@@ -167,11 +93,11 @@ pub struct PostStudent {
 }
 
 impl Message for PostStudent {
-    type Result = io::Result<StudentResponse>;
+    type Result = io::Result<models::Student>;
 }
 
 impl Handler<PostStudent> for DbExecutor {
-    type Result = io::Result<StudentResponse>;
+    type Result = io::Result<models::Student>;
 
     fn handle(&mut self, msg: PostStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
@@ -188,19 +114,7 @@ impl Handler<PostStudent> for DbExecutor {
             .execute(conn);
 
         match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
-            Ok(mut items) => {
-                let s = items.pop().unwrap();
-                Ok(StudentResponse {
-                    status: 200,
-                    message: "Student Record Inserted".to_string(),
-                    data: models::Student {
-                        id: s.id,
-                        name: s.name,
-                        roll_no: s.roll_no,
-                        attendance: s.attendance,
-                    },
-                })
-            }
+            Ok(mut items) => Ok(items.pop().unwrap()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }
@@ -211,21 +125,18 @@ pub struct DeleteStudent {
 }
 
 impl Message for DeleteStudent {
-    type Result = io::Result<DeleteResponse>;
+    type Result = io::Result<()>;
 }
 
 impl Handler<DeleteStudent> for DbExecutor {
-    type Result = io::Result<DeleteResponse>;
+    type Result = io::Result<()>;
 
     fn handle(&mut self, msg: DeleteStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
         match diesel::delete(students.filter(id.eq(msg.id))).execute(conn) {
-            Ok(_) => Ok(DeleteResponse {
-                status: 200,
-                message: "Student data deleted".to_string(),
-            }),
+            Ok(_) => Ok(()),
             Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
         }
     }

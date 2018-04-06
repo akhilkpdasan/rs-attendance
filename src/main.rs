@@ -34,7 +34,7 @@ struct State {
 fn get_all(req: HttpRequest<State>) -> Box<Future<Item = HttpResponse, Error = Error>> {
     req.state()
         .db
-        .send(StudentsList {})
+        .send(GetStudents {})
         .from_err()
         .and_then(|res| match res {
             Ok(students) => Ok(HttpResponse::Ok().json(students)?),
