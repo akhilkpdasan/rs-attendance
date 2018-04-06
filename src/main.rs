@@ -135,7 +135,7 @@ fn main() {
                 r.method(Method::GET).a(get_all);
                 r.method(Method::POST).a(new);
             })
-            .resource("/student/{sid}", |r| {
+            .resource("/students/{sid}", |r| {
                 r.method(Method::GET).a(get_one);
                 r.method(Method::PUT).a(update);
                 r.method(Method::DELETE).a(delete);
