@@ -10,6 +10,7 @@ extern crate num_cpus;
 extern crate r2d2;
 extern crate r2d2_diesel;
 extern crate serde;
+#[macro_use]
 extern crate serde_json;
 
 use actix::SyncArbiter;
@@ -52,6 +53,7 @@ fn get_one(req: HttpRequest<State>) -> Box<Future<Item = HttpResponse, Error = E
         .from_err()
         .and_then(|res| match res {
             Ok(student) => Ok(HttpResponse::Ok().json(student)?),
+            Err(MyError::NotFound) => Ok(HttpResponse::NotFound().into()),
             Err(_) => Ok(HttpResponse::InternalServerError().into()),
         })
         .responder()
@@ -71,7 +73,9 @@ fn new(req: HttpRequest<State>) -> Box<Future<Item = HttpResponse, Error = Error
                 })
                 .from_err()
                 .and_then(|res| match res {
-                    Ok(msg) => Ok(HttpResponse::Ok().json(msg)?),
+                    Ok(id) => {
+                        Ok(HttpResponse::Ok().json(json!({ "URL": format!("/students/{}", id) }))?)
+                    }
                     Err(_) => Ok(HttpResponse::InternalServerError().into()),
                 })
         })
@@ -96,7 +100,8 @@ fn update(req: HttpRequest<State>) -> Box<Future<Item = HttpResponse, Error = Er
                 })
                 .from_err()
                 .and_then(|res| match res {
-                    Ok(msg) => Ok(HttpResponse::Ok().json(msg)?),
+                    Ok(_) => Ok(HttpResponse::NoContent().into()),
+                    Err(MyError::NotFound) => Ok(HttpResponse::NotFound().into()),
                     Err(_) => Ok(HttpResponse::InternalServerError().into()),
                 })
         })
@@ -111,7 +116,8 @@ fn delete(req: HttpRequest<State>) -> Box<Future<Item = HttpResponse, Error = Er
         .send(DeleteStudent { id: sid })
         .from_err()
         .and_then(|res| match res {
-            Ok(msg) => Ok(HttpResponse::Ok().json(msg)?),
+            Ok(_) => Ok(HttpResponse::NoContent().into()),
+            Err(MyError::NotFound) => Ok(HttpResponse::NotFound().into()),
             Err(_) => Ok(HttpResponse::InternalServerError().into()),
         })
         .responder()

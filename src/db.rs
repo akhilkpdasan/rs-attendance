@@ -20,19 +20,24 @@ pub struct GetStudent {
 }
 
 impl Message for GetStudent {
-    type Result = io::Result<models::Student>;
+    type Result = Result<models::Student, MyError>;
 }
 
 impl Handler<GetStudent> for DbExecutor {
-    type Result = io::Result<models::Student>;
+    type Result = Result<models::Student, MyError>;
 
     fn handle(&mut self, msg: GetStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
-        match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
-            Ok(mut items) => Ok(items.pop().unwrap()),
-            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+        let items = students
+            .filter(id.eq(msg.id))
+            .first::<models::Student>(conn);
+
+        match items {
+            Ok(item) => Ok(item),
+            Err(diesel::NotFound) => Err(MyError::NotFound),
+            Err(_) => Err(MyError::DatabaseError),
         }
     }
 }
@@ -63,24 +68,25 @@ pub struct UpdateStudent {
 }
 
 impl Message for UpdateStudent {
-    type Result = io::Result<models::Student>;
+    type Result = Result<(), MyError>;
 }
 
 impl Handler<UpdateStudent> for DbExecutor {
-    type Result = io::Result<models::Student>;
+    type Result = Result<(), MyError>;
 
     fn handle(&mut self, msg: UpdateStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
-        let _ = diesel::update(students)
+        let updated = diesel::update(students)
             .filter(id.eq(&msg.id))
             .set(attendance.eq(msg.attendance))
             .execute(conn);
 
-        match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
-            Ok(mut items) => Ok(items.pop().unwrap()),
-            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+        match updated {
+            Ok(1) => Ok(()),
+            Ok(_) => Err(MyError::NotFound),
+            Err(_) => Err(MyError::DatabaseError),
         }
     }
 }
@@ -93,11 +99,11 @@ pub struct PostStudent {
 }
 
 impl Message for PostStudent {
-    type Result = io::Result<models::Student>;
+    type Result = Result<String, MyError>;
 }
 
 impl Handler<PostStudent> for DbExecutor {
-    type Result = io::Result<models::Student>;
+    type Result = Result<String, MyError>;
 
     fn handle(&mut self, msg: PostStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
@@ -109,15 +115,20 @@ impl Handler<PostStudent> for DbExecutor {
             roll_no: msg.roll_no,
             attendance: msg.attendance,
         };
-        let _ = diesel::insert_into(students)
+        let rows_inserted = diesel::insert_into(students)
             .values(&new_student)
             .execute(conn);
 
-        match students.filter(id.eq(msg.id)).load::<models::Student>(conn) {
-            Ok(mut items) => Ok(items.pop().unwrap()),
-            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+        match rows_inserted {
+            Ok(_) => Ok(msg.id),
+            Err(_) => Err(MyError::DatabaseError),
         }
     }
+}
+
+pub enum MyError {
+    NotFound,
+    DatabaseError,
 }
 
 pub struct DeleteStudent {
@@ -125,19 +136,20 @@ pub struct DeleteStudent {
 }
 
 impl Message for DeleteStudent {
-    type Result = io::Result<()>;
+    type Result = Result<(), MyError>;
 }
 
 impl Handler<DeleteStudent> for DbExecutor {
-    type Result = io::Result<()>;
+    type Result = Result<(), MyError>;
 
     fn handle(&mut self, msg: DeleteStudent, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();
         match diesel::delete(students.filter(id.eq(msg.id))).execute(conn) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Database error")),
+            Ok(1) => Ok(()),
+            Ok(_) => Err(MyError::NotFound),
+            Err(_) => Err(MyError::DatabaseError),
         }
     }
 }
