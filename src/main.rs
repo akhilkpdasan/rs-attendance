@@ -1,3 +1,4 @@
+extern crate http;
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -24,6 +25,7 @@ use models::Student;
 use r2d2_diesel::ConnectionManager;
 use std::env;
 
+mod cors;
 mod db;
 mod models;
 mod schema;
@@ -138,10 +140,12 @@ fn main() {
         Application::with_state(State { db: addr.clone() })
             .middleware(middleware::Logger::default())
             .resource("/students", |r| {
+                cors::options().register(r);
                 r.method(Method::GET).a(get_all);
                 r.method(Method::POST).a(new);
             })
             .resource("/students/{sid}", |r| {
+                cors::options().register(r);
                 r.method(Method::GET).a(get_one);
                 r.method(Method::PUT).a(update);
                 r.method(Method::DELETE).a(delete);
