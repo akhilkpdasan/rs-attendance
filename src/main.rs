@@ -13,6 +13,7 @@ extern crate r2d2_diesel;
 extern crate serde;
 #[macro_use]
 extern crate serde_json;
+extern crate env_logger;
 
 use actix::SyncArbiter;
 use actix::{Addr, Syn};
@@ -127,6 +128,9 @@ fn delete(req: HttpRequest<State>) -> Box<Future<Item = HttpResponse, Error = Er
 
 fn main() {
     let sys = actix::System::new("example");
+    ::std::env::set_var("RUST_LOG", "actix_web=info");
+    ::std::env::set_var("RUST_BACKTRACE", "1"); 
+    env_logger::init();
     dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
