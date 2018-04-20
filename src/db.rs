@@ -91,21 +91,14 @@ impl Handler<UpdateStudent> for DbExecutor {
     }
 }
 
-pub struct PostStudent {
-    pub id: String,
-    pub name: String,
-    pub roll_no: i32,
-    pub attendance: f32,
-}
-
-impl Message for PostStudent {
+impl Message for models::Student {
     type Result = Result<String, MyError>;
 }
 
-impl Handler<PostStudent> for DbExecutor {
+impl Handler<models::Student> for DbExecutor {
     type Result = Result<String, MyError>;
 
-    fn handle(&mut self, msg: PostStudent, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: models::Student, _: &mut Self::Context) -> Self::Result {
         use schema::students::dsl::*;
 
         let conn: &PgConnection = &self.pool.get().unwrap();

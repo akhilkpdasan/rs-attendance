@@ -1,4 +1,3 @@
-use http::header;
 use actix_web::middleware::cors;
 
 pub fn options() -> cors::Cors {
@@ -6,5 +5,5 @@ pub fn options() -> cors::Cors {
         .send_wildcard()
         .allowed_methods(vec!["DELETE", "GET", "POST", "PUT"])
         .max_age(3600)
-        .finish().expect("Can not create CORS middleware")
+        .finish()
 }
