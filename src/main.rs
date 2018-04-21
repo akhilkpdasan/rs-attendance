@@ -17,7 +17,6 @@ extern crate env_logger;
 use actix::SyncArbiter;
 use actix::{Addr, Syn};
 use actix_web::http::*;
-use actix_web::test::*;
 use actix_web::*;
 use db::*;
 use diesel::prelude::*;
@@ -143,7 +142,7 @@ fn main() {
                 r.method(Method::PUT).with3(update);
                 r.method(Method::DELETE).with2(delete);
             })
-    }).bind("127.0.0.1:8088")
+    }).bind("192.168.0.103:8088")
         .unwrap()
         .start();
 
