@@ -153,8 +153,9 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::*;
+    use actix_web::test::TestServer ;
 
-    fn server() -> TestServerBuilder<AppState> {
+    fn server() -> TestServer {
         TestServer::build_with_state(|| {
             dotenv().ok();
             let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -163,16 +164,23 @@ mod test {
                 .build(manager)
                 .expect("Failed to create pool.");
             let addr = SyncArbiter::start(3, move || DbExecutor { pool: pool.clone() });
-            AppState { db: addr.clone() }
+            AppState{db: addr.clone()}
+        }).start(|app| {
+            app.resource("/students", |r| {
+                r.method(Method::GET).with(get_all);
+                r.method(Method::POST).with2(new);
+            })
+            .resource("/students/{sid}", |r| {
+                r.method(Method::GET).with2(get_one);
+                r.method(Method::PUT).with3(update);
+                r.method(Method::DELETE).with2(delete);
+            });
         })
     }
 
     #[test]
     fn test_get_all() {
-        let mut srv = server().start(|app| {
-            app.resource("/students", |r| r.method(Method::GET).with(get_all));
-        });
-
+        let mut srv = server();
         let request = srv.client(Method::GET, "/students").finish().unwrap();
         let response = srv.execute(request.send()).unwrap();
 
@@ -181,10 +189,7 @@ mod test {
 
     #[test]
     fn test_get_one() {
-        let mut srv = server().start(|app| {
-            app.resource("/students/{sid}", |r| r.method(Method::GET).with2(get_one));
-        });
-
+        let mut srv = server();
         let request = srv.client(Method::GET, "/students/s32").finish().unwrap();
         let response = srv.execute(request.send()).unwrap();
 
@@ -193,10 +198,7 @@ mod test {
 
     #[test]
     fn test_get_non_existent() {
-        let mut srv = server().start(|app| {
-            app.resource("/students/{sid}", |r| r.method(Method::GET).with2(get_one));
-        });
-
+        let mut srv = server();
         let request = srv.client(Method::GET, "/students/s100").finish().unwrap();
         let response = srv.execute(request.send()).unwrap();
 
@@ -205,10 +207,7 @@ mod test {
 
     #[test]
     fn test_new() {
-        let mut srv = server().start(|app| {
-            app.resource("/students", |r| r.method(Method::POST).with2(new));
-        });
-
+        let mut srv = server();
         let body = json!({"id": "s35", "name": "akhil", "roll_no": 35, "attendance": 55.0});
         let request = srv.client(Method::POST, "/students").json(body).unwrap();
 
@@ -218,9 +217,7 @@ mod test {
 
     #[test]
     fn test_new_bad_input() {
-        let mut srv = server().start(|app| {
-            app.resource("/students", |r| r.method(Method::POST).with2(new));
-        });
+        let mut srv = server();
 
         let body = json!({"id": "s35", "name": "test", "roll_no": "int", "attendance": "float"});
         let request = srv.client(Method::POST, "/students").json(body).unwrap();
@@ -231,9 +228,7 @@ mod test {
 
     #[test]
     fn test_update_bad_input() {
-        let mut srv = server().start(|app| {
-            app.resource("/students/{sid}", |r| r.method(Method::PUT).with3(update));
-        });
+        let mut srv = server();
 
         let body = json!({"attendance": "float"});
         let request = srv.client(Method::PUT, "/students/s32").json(body).unwrap();
@@ -244,9 +239,7 @@ mod test {
 
     #[test]
     fn test_update() {
-        let mut srv = server().start(|app| {
-            app.resource("/students/{sid}", |r| r.method(Method::PUT).with3(update));
-        });
+        let mut srv = server();
 
         let body = json!({"attendance": 33.33});
         let request = srv.client(Method::PUT, "/students/s32").json(body).unwrap();
@@ -257,9 +250,7 @@ mod test {
 
     #[test]
     fn test_update_non_existent() {
-        let mut srv = server().start(|app| {
-            app.resource("/students/{sid}", |r| r.method(Method::PUT).with3(update));
-        });
+        let mut srv = server();
 
         let body = json!({"attendance": 33.33});
         let request = srv.client(Method::GET, "/students/s100")
@@ -272,11 +263,7 @@ mod test {
 
     #[test]
     fn test_delete() {
-        let mut srv = server().start(|app| {
-            app.resource("/students/{sid}", |r| {
-                r.method(Method::DELETE).with2(delete)
-            });
-        });
+        let mut srv = server();
 
         let request = srv.client(Method::DELETE, "/students/s36")
             .finish()
@@ -288,11 +275,7 @@ mod test {
 
     #[test]
     fn test_delete_non_existent() {
-        let mut srv = server().start(|app| {
-            app.resource("/students/{sid}", |r| {
-                r.method(Method::DELETE).with2(delete)
-            });
-        });
+        let mut srv = server();
 
         let request = srv.client(Method::DELETE, "/students/s100")
             .finish()
