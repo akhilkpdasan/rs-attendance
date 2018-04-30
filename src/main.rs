@@ -11,11 +11,11 @@ fn main() {
     ::std::env::set_var("RUST_LOG", "actix_web=info");
     ::std::env::set_var("RUST_BACKTRACE", "1");
     
+    env_logger::init();
     server::new(create_app)
         .bind("192.168.0.103:8088")
         .expect("Couldn't bind server to addrsess")
         .start();
-    env_logger::init();
         
     println!("Started http server: 127.0.0.1:8088");
     let _ = sys.run();
