@@ -13,7 +13,7 @@ fn main() {
     env_logger::init();
 
     server::new(create_app)
-        .bind("192.168.0.103:8088")
+        .bind("localhost:8088")
         .expect("Couldn't bind server to addrsess")
         .start();
 

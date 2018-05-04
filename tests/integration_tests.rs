@@ -1,116 +1,276 @@
-extern crate attendance_rs;
 extern crate actix;
 extern crate actix_web;
+extern crate attendance_rs;
 #[macro_use]
 extern crate serde_json;
+extern crate futures;
 
-use actix_web::test::TestServer;
 use actix_web::http::{Method, StatusCode};
+use actix_web::test::TestServer;
+use actix_web::HttpMessage;
 use attendance_rs::create_app;
 
+struct TestApp {
+    server: TestServer,
+    token: String,
+}
+
+impl TestApp {
+    fn new() -> TestApp {
+        ::std::env::set_var("DATABASE_URL", "postgres://postgres@localhost/test_db");
+        let mut test_server = TestServer::with_factory(create_app);
+        let token = TestApp::get_token(&mut test_server);
+
+        TestApp {
+            server: test_server,
+            token: token,
+        }
+    }
+
+    fn get_token(srv: &mut TestServer) -> String {
+        let request = srv.client(Method::POST, "/login")
+            .timeout(std::time::Duration::new(120, 0))
+            .json(json!({"username":"test", "password": "test"}))
+            .unwrap();
+
+        let response = srv.execute(request.send()).unwrap();
+        let bytes = srv.execute(response.body()).unwrap();
+        String::from_utf8(bytes.to_vec()).unwrap()
+    }
+}
+
 #[test]
-fn test_get_all() {
+fn login() {
+    let mut srv = TestServer::with_factory(create_app);
+    let request = srv.client(Method::POST, "/login")
+        .timeout(std::time::Duration::new(120, 0))
+        .json(json!({"username":"test", "password":"test"}))
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+}
+
+#[test]
+fn login_bad_pass() {
+    let mut srv = TestServer::with_factory(create_app);
+    let request = srv.client(Method::POST, "/login")
+        .timeout(std::time::Duration::new(120, 0))
+        .json(json!({"username":"test", "password":"bad_pass"}))
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_client_error());
+}
+
+#[test]
+fn login_no_user() {
+    let mut srv = TestServer::with_factory(create_app);
+    let request = srv.client(Method::POST, "/login")
+        .timeout(std::time::Duration::new(120, 0))
+        .json(json!({"username":"no_user", "password":"test"}))
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_client_error());
+}
+
+#[test]
+fn register() {
+    let mut srv = TestServer::with_factory(create_app);
+    let request = srv.client(Method::POST, "/register")
+        .json(json!({"username":"test2", "password":"test2", "email":"test2"}))
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+}
+
+#[test]
+fn register_bad_input() {
+    let mut srv = TestServer::with_factory(create_app);
+    let request = srv.client(Method::POST, "/register")
+        .json(json!({"username":"bad_input", "password":123, "email":"test2"}))
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_client_error());
+}
+
+#[test]
+fn register_user_exists() {
+    let mut srv = TestServer::with_factory(create_app);
+    let request = srv.client(Method::POST, "/register")
+        .json(json!({"username":"test", "password":"test", "email":"test"}))
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[test]
+fn get_without_auth() {
     let mut srv = TestServer::with_factory(create_app);
     let request = srv.client(Method::GET, "/students").finish().unwrap();
+
     let response = srv.execute(request.send()).unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
 #[test]
-fn test_get_one() {
-    let mut srv = TestServer::with_factory(create_app);
-    let request = srv.client(Method::GET, "/students/s32").finish().unwrap();
-    let response = srv.execute(request.send()).unwrap();
+fn get_all_students() {
+    let mut app = TestApp::new();
+    let request = app.server
+        .client(Method::GET, "/students")
+        .header("Authorization", format!("Bearer {}", app.token))
+        .finish()
+        .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
 }
 
 #[test]
-fn test_get_non_existent() {
-    let mut srv = TestServer::with_factory(create_app);
-    let request = srv.client(Method::GET, "/students/s100").finish().unwrap();
-    let response = srv.execute(request.send()).unwrap();
+fn get_student() {
+    let mut app = TestApp::new();
+    let request = app.server
+        .client(Method::GET, "/students/s32")
+        .header("Authorization", format!("Bearer {}", app.token))
+        .finish()
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+}
+
+#[test]
+fn get_non_existent() {
+    let mut app = TestApp::new();
+    let request = app.server
+        .client(Method::GET, "/students/s100")
+        .header("Authorization", format!("Bearer {}", app.token))
+        .finish()
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
 #[test]
-fn test_new() {
-    let mut srv = TestServer::with_factory(create_app);
+fn new_student() {
+    let mut app = TestApp::new();
     let body = json!({"id": "s35", "name": "akhil", "roll_no": 35, "attendance": 55.0});
-    let request = srv.client(Method::POST, "/students").json(body).unwrap();
-
-    let response = srv.execute(request.send()).unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-}
-
-#[test]
-fn test_new_bad_input() {
-    let mut srv = TestServer::with_factory(create_app);
-
-    let body = json!({"id": "s35", "name": "test", "roll_no": "int", "attendance": "float"});
-    let request = srv.client(Method::POST, "/students").json(body).unwrap();
-    let response = srv.execute(request.send()).unwrap();
-
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-}
-
-#[test]
-fn test_update_bad_input() {
-    let mut srv = TestServer::with_factory(create_app);
-
-    let body = json!({"attendance": "float"});
-    let request = srv.client(Method::PUT, "/students/s32").json(body).unwrap();
-
-    let response = srv.execute(request.send()).unwrap();
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-}
-
-#[test]
-fn test_update() {
-    let mut srv = TestServer::with_factory(create_app);
-
-    let body = json!({"attendance": 33.33});
-    let request = srv.client(Method::PUT, "/students/s32").json(body).unwrap();
-
-    let response = srv.execute(request.send()).unwrap();
-    assert_eq!(response.status(), StatusCode::NO_CONTENT);
-}
-
-#[test]
-fn test_update_non_existent() {
-    let mut srv = TestServer::with_factory(create_app);
-
-    let body = json!({"attendance": 33.33});
-    let request = srv.client(Method::GET, "/students/s100")
+    let request = app.server
+        .client(Method::POST, "/students")
+        .header("Authorization", format!("Bearer {}", app.token))
         .json(body)
         .unwrap();
 
-    let response = srv.execute(request.send()).unwrap();
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+}
+
+#[test]
+fn new_bad_input() {
+    let mut app = TestApp::new();
+
+    let body = json!({"id": "s35", "name": "test", "roll_no": "int", "attendance": "float"});
+    let request = app.server
+        .client(Method::POST, "/students")
+        .header("Authorization", format!("Bearer {}", app.token))
+        .json(body)
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[test]
+fn update_bad_input() {
+    let mut app = TestApp::new();
+
+    let body = json!({"attendance": "float"});
+    let request = app.server
+        .client(Method::PUT, "/students/s32")
+        .header("Authorization", format!("Bearer {}", app.token))
+        .json(body)
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[test]
+fn update_student() {
+    let mut app = TestApp::new();
+
+    let body = json!({"attendance": 33.33});
+    let request = app.server
+        .client(Method::PUT, "/students/s32")
+        .header("Authorization", format!("Bearer {}", app.token))
+        .json(body)
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+}
+
+#[test]
+fn update_non_existent() {
+    let mut app = TestApp::new();
+
+    let body = json!({"attendance": 33.33});
+    let request = app.server
+        .client(Method::GET, "/students/s100")
+        .header("Authorization", format!("Bearer {}", app.token))
+        .json(body)
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
 #[test]
-fn test_delete() {
-    let mut srv = TestServer::with_factory(create_app);
+fn delete_student() {
+    let mut app = TestApp::new();
 
-    let request = srv.client(Method::DELETE, "/students/s36")
+    let request = app.server
+        .client(Method::DELETE, "/students/s36")
+        .header("Authorization", format!("Bearer {}", app.token))
         .finish()
         .unwrap();
-    let response = srv.execute(request.send()).unwrap();
 
-    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
 }
 
 #[test]
-fn test_delete_non_existent() {
-    let mut srv = TestServer::with_factory(create_app);
+fn delete_non_existent() {
+    let mut app = TestApp::new();
 
-    let request = srv.client(Method::DELETE, "/students/s100")
+    let request = app.server
+        .client(Method::DELETE, "/students/s100")
+        .header("Authorization", format!("Bearer {}", app.token))
         .finish()
         .unwrap();
-    let response = srv.execute(request.send()).unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }

@@ -1,6 +1,8 @@
 use actix::prelude::*;
+use bcrypt::{hash, verify, DEFAULT_COST};
 use diesel;
 use diesel::prelude::*;
+use jwt::{encode, Header};
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use std::io;
@@ -122,6 +124,12 @@ impl Handler<models::Student> for DbExecutor {
 pub enum MyError {
     NotFound,
     DatabaseError,
+    AuthorizationError,
+    BadPassword,
+    TokenVerify,
+    PasswordHash,
+    UserNotFound,
+    UserExists,
 }
 
 pub struct DeleteStudent {
@@ -145,4 +153,82 @@ impl Handler<DeleteStudent> for DbExecutor {
             Err(_) => Err(MyError::DatabaseError),
         }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UserLogin {
+    pub username: String,
+    pub password: String,
+}
+
+impl Message for UserLogin {
+    type Result = Result<String, MyError>;
+}
+
+impl Handler<UserLogin> for DbExecutor {
+    type Result = Result<String, MyError>;
+
+    fn handle(&mut self, msg: UserLogin, _: &mut Self::Context) -> Self::Result {
+        use schema::users::dsl::*;
+
+        let conn: &PgConnection = &self.pool.get().unwrap();
+
+        match users
+            .filter(username.eq(&msg.username))
+            .first::<models::Users>(conn)
+        {
+            Ok(user) => match verify(&msg.password, &user.password) {
+                Ok(valid) => {
+                    if valid {
+                        let token = encode(
+                            &Header::default(),
+                            &Claims {
+                                username: msg.username,
+                            },
+                            "secret".as_ref(),
+                        ).unwrap();
+                        Ok(token)
+                    } else {
+                        Err(MyError::BadPassword)
+                    }
+                }
+                Err(_) => Err(MyError::TokenVerify),
+            },
+            Err(_) => Err(MyError::UserNotFound),
+        }
+    }
+}
+
+impl Message for models::UserRegister {
+    type Result = Result<String, MyError>;
+}
+
+impl Handler<models::UserRegister> for DbExecutor {
+    type Result = Result<String, MyError>;
+
+    fn handle(&mut self, mut msg: models::UserRegister, _: &mut Self::Context) -> Self::Result {
+        use schema::users::dsl::*;
+
+        let hash_pass = match hash(&msg.password, DEFAULT_COST) {
+            Ok(h) => h,
+            Err(_) => return Err(MyError::PasswordHash),
+        };
+
+        msg.password = hash_pass;
+
+        let conn: &PgConnection = &self.pool.get().unwrap();
+
+        let rows_inserted = diesel::insert_into(users).values(&msg).execute(conn);
+
+        match rows_inserted {
+            Ok(1) => Ok(msg.username),
+            Ok(0) => Err(MyError::UserExists),
+            _ => Err(MyError::DatabaseError),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub username: String,
 }
