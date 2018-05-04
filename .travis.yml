@@ -1,0 +1,19 @@
+language: rust
+
+rust:
+  - nightly
+  - stable
+
+services:
+  - postgresql
+
+before_script:
+  - psql -c 'create database test_db;' -U postgres
+  - cargo install diesel_cli --no-default-features --features=postgres
+  - diesel migration --migration-dir test_migrations --database-url postgres://postgres@localhost/test_db redo
+
+script:
+  - cargo build --release --verbose --all
+  - cargo test --release --verbose --all
+
+cache: cargo
