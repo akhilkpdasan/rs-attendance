@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/akhilkpdasan/rs-attendance.svg?branch=master)](https://travis-ci.com/akhilkpdasan/rs-attendance)
 # To run tests:
 
 ### Setup test database:
