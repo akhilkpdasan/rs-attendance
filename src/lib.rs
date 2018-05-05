@@ -1,3 +1,5 @@
+#![feature(custom_attribute)]
+
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -16,22 +18,24 @@ extern crate serde_json;
 extern crate bcrypt;
 extern crate env_logger;
 
-use actix::SyncArbiter;
-use actix::{Addr, Syn};
+use actix::{Addr, Syn, SyncArbiter};
 use actix_web::http::*;
+use actix_web::middleware::{Middleware, Started};
 use actix_web::*;
-use actix_web::{middleware::Middleware, middleware::Started};
-use db::*;
+use db_executor::*;
 use diesel::prelude::*;
 use dotenv::dotenv;
+use error::MyError;
 use futures::future::Future;
 use jwt::{decode, Validation};
-use models::Student;
+use models::{Claims, NewUser, Student};
 use r2d2_diesel::ConnectionManager;
 use std::env;
 
 mod cors;
 mod db;
+mod db_executor;
+mod error;
 mod models;
 mod schema;
 
@@ -136,10 +140,7 @@ fn login(state: State<AppState>, user: Json<UserLogin>) -> FutureResponse<HttpRe
         .responder()
 }
 
-fn register(
-    state: State<AppState>,
-    user: Json<models::UserRegister>,
-) -> FutureResponse<HttpResponse> {
+fn register(state: State<AppState>, user: Json<NewUser>) -> FutureResponse<HttpResponse> {
     state
         .db
         .send(user.into_inner())

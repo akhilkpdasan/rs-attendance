@@ -10,20 +10,24 @@ pub struct Student {
     pub attendance: f32,
 }
 
-#[derive(Insertable, Queryable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "users"]
-pub struct Users {
+#[derive(Queryable, PartialEq, Debug, Serialize, Deserialize)]
+pub struct User {
     pub id: i32,
     pub email: String,
     pub username: String,
     pub password: String,
 }
 
-//TODO move this to appropriate file
 #[derive(Insertable, Serialize, Deserialize)]
 #[table_name = "users"]
-pub struct UserRegister {
+pub struct NewUser {
     pub username: String,
     pub password: String,
     pub email: String,
+}
+
+//TODO move this to appriopriate place
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub username: String,
 }
