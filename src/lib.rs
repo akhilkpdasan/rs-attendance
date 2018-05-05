@@ -1,5 +1,3 @@
-#![feature(custom_attribute)]
-
 #[macro_use]
 extern crate diesel;
 #[macro_use]
