@@ -17,3 +17,6 @@ script:
   - cargo test --release --verbose --all
 
 cache: cargo
+
+after_script:
+  - diesel migration --migration-dir test_migrations --database-url postgres://postgres@localhost/test_db revert
