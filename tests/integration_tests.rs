@@ -9,6 +9,7 @@ use actix_web::http::{Method, StatusCode};
 use actix_web::test::TestServer;
 use actix_web::HttpMessage;
 use attendance_rs::create_app;
+use futures::Future;
 
 struct TestApp {
     server: TestServer,
@@ -18,6 +19,7 @@ struct TestApp {
 impl TestApp {
     fn new() -> TestApp {
         ::std::env::set_var("DATABASE_URL", "postgres://postgres@localhost/test_db");
+
         let mut test_server = TestServer::with_factory(create_app);
         let token = TestApp::get_token(&mut test_server);
 
@@ -33,9 +35,14 @@ impl TestApp {
             .json(json!({"username":"test", "password": "test"}))
             .unwrap();
 
-        let response = srv.execute(request.send()).unwrap();
-        let bytes = srv.execute(response.body()).unwrap();
-        String::from_utf8(bytes.to_vec()).unwrap()
+        let response_bytes = srv.execute(
+            request
+                .send()
+                .map_err(|_| ())
+                .and_then(|res| res.body().map_err(|_| ()).and_then(|bytes| Ok(bytes))),
+        ).unwrap();
+
+        String::from_utf8(response_bytes.to_vec()).unwrap()
     }
 }
 
@@ -182,6 +189,20 @@ fn new_student() {
 }
 
 #[test]
+fn new_without_token() {
+    let mut app = TestApp::new();
+    let body = json!({"id": "s35", "name": "akhil", "roll_no": 35, "attendance": 55.0});
+    let request = app.server
+        .client(Method::POST, "/students")
+        .json(body)
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_client_error());
+}
+
+#[test]
 fn new_bad_input() {
     let mut app = TestApp::new();
 
@@ -246,6 +267,21 @@ fn update_non_existent() {
 }
 
 #[test]
+fn update_without_token() {
+    let mut app = TestApp::new();
+
+    let body = json!({"attendance": 33.33});
+    let request = app.server
+        .client(Method::PUT, "/students/s32")
+        .json(body)
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_client_error());
+}
+
+#[test]
 fn delete_student() {
     let mut app = TestApp::new();
 
@@ -258,6 +294,20 @@ fn delete_student() {
     let response = app.server.execute(request.send()).unwrap();
 
     assert!(response.status().is_success());
+}
+
+#[test]
+fn delete_without_token() {
+    let mut app = TestApp::new();
+
+    let request = app.server
+        .client(Method::DELETE, "/students/s36")
+        .finish()
+        .unwrap();
+
+    let response = app.server.execute(request.send()).unwrap();
+
+    assert!(response.status().is_client_error());
 }
 
 #[test]
