@@ -185,7 +185,7 @@ fn new_student() {
 
     let response = app.server.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[test]
@@ -293,7 +293,7 @@ fn delete_student() {
 
     let response = app.server.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
 }
 
 #[test]

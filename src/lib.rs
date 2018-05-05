@@ -20,7 +20,7 @@ use actix::SyncArbiter;
 use actix::{Addr, Syn};
 use actix_web::http::*;
 use actix_web::*;
-use actix_web::{middleware::Middleware, middleware::Response};
+use actix_web::{middleware::Middleware, middleware::Started};
 use db::*;
 use diesel::prelude::*;
 use dotenv::dotenv;
@@ -154,21 +154,21 @@ fn register(
 struct Authorization {}
 
 impl<S> Middleware<S> for Authorization {
-    fn response(&self, req: &mut HttpRequest<S>, resp: HttpResponse) -> Result<Response> {
+    fn start(&self, req: &mut HttpRequest<S>) -> Result<Started> {
         if req.path() == "/login" || req.path() == "/register" {
-            Ok(Response::Done(resp))
+            Ok(Started::Done)
         } else {
             let token = match req.headers_mut().get("Authorization") {
                 Some(t) => match t.to_str() {
                     Ok(t) => t,
                     Err(_) => {
-                        return Ok(Response::Done(
+                        return Ok(Started::Response(
                             HttpResponse::BadRequest().body("Token contains non ascii characters"),
                         ))
                     }
                 },
                 None => {
-                    return Ok(Response::Done(
+                    return Ok(Started::Response(
                         HttpResponse::Unauthorized().body("Authorization token missing"),
                     ))
                 }
@@ -178,8 +178,8 @@ impl<S> Middleware<S> for Authorization {
                 decode::<Claims>(&token[7..], "secret".as_ref(), &Validation::default());
 
             match dec_token {
-                Ok(_) => Ok(Response::Done(resp)),
-                Err(_) => Ok(Response::Done(
+                Ok(_) => Ok(Started::Done),
+                Err(_) => Ok(Started::Response(
                     HttpResponse::Unauthorized().body("Token incorrect"),
                 )),
             }
@@ -193,7 +193,7 @@ pub fn create_app() -> App<AppState> {
 
     let manager = ConnectionManager::<PgConnection>::new(db_url);
     let pool = r2d2::Pool::builder()
-        .max_size(5)
+        .max_size(3)
         //.connection_timeout(std::time::Duration::new(300, 0))
         .build(manager)
         .expect("Failed to create pool.");
