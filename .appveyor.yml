@@ -12,7 +12,6 @@ environment:
     PGUSER: postgres
     PGPASSWORD: Password12!
     DATABASE_URL: postgres://postgres:Password12!@localhost/test_db
-    RUST_TEST_THREADS: 1
 
 services:
   - postgresql95
