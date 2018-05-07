@@ -5,25 +5,20 @@ environment:
     - channel: stable
       target: x86_64-pc-windows-msvc
 
-    - channel: stable
-      target: i686-pc-windows-msvc
-
     - channel: nightly
       target: x86_64-pc-windows-msvc
-
-    - channel: nightly
-      target: i686-pc-windows-msvc
-
-matrix:
-  allow_failures:
-    - channel: nightly
+  
+  global:
+    PGUSER: postgres
+    PGPASSWORD: Password12!
+    DATABASE_URL: postgres://postgres:Password12!@localhost/test_db
+    RUST_TEST_THREADS: 1
 
 services:
-  - postgresql
+  - postgresql95
 
 cache:
-  - target -> Cargo.lock
-  - C:\Users\appveyor\.cargo\registry -> Cargo.lock
+  - C:\Users\appveyor\.cargo
 
 install:
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
@@ -31,10 +26,15 @@ install:
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustc -vV
   - cargo -vV
-  - cargo install diesel_cli
-  - diesel setup --database-url postgres://postgres@localhost/test_db --migration-dir test_migrations
+  - set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%
+  - SET PATH=C:\Program Files\PostgreSQL\9.5\bin;%PATH%
+  - cargo install diesel_cli --no-default-features --features=postgres --force
+
+before_test:
+  - createdb test_db
+  - diesel migration --database-url postgres://postgres:Password12!@localhost/test_db --migration-dir test_migrations run
   
 build: false
 
 test_script:
-  - cargo test --verbose --release %cargoflags%
+  - cargo test --verbose --release

@@ -18,8 +18,6 @@ struct TestApp {
 
 impl TestApp {
     fn new() -> TestApp {
-        ::std::env::set_var("DATABASE_URL", "postgres://postgres@localhost/test_db");
-
         let mut test_server = TestServer::with_factory(create_app);
         let token = TestApp::get_token(&mut test_server);
 

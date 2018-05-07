@@ -3,6 +3,7 @@
 > REST API for students attendance management written in rust
 
 [![Build Status](https://travis-ci.com/akhilkpdasan/rs-attendance.svg?branch=master)](https://travis-ci.com/akhilkpdasan/rs-attendance)
+[![Build status](https://ci.appveyor.com/api/projects/status/lvs4gdvopqwh4rex?svg=true)](https://ci.appveyor.com/project/akhilkpdasan/rs-attendance)
 
 ## Starting Server
 
