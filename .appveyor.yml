@@ -36,4 +36,4 @@ before_test:
 build: false
 
 test_script:
-  - cargo test --verbose --release
+  - cargo test --verbose

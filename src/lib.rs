@@ -192,8 +192,6 @@ pub fn create_app() -> App<AppState> {
 
     let manager = ConnectionManager::<PgConnection>::new(db_url);
     let pool = r2d2::Pool::builder()
-        .max_size(3)
-        //.connection_timeout(std::time::Duration::new(300, 0))
         .build(manager)
         .expect("Failed to create pool.");
     let addr = SyncArbiter::start(3, move || DbExecutor { pool: pool.clone() });
