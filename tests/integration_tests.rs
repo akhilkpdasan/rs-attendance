@@ -1,4 +1,4 @@
-extern crate actix;
+//extern crate actix;
 extern crate actix_web;
 extern crate attendance_rs;
 #[macro_use]
@@ -6,7 +6,6 @@ extern crate serde_json;
 
 use actix_web::http::{Method, StatusCode};
 use actix_web::test::TestServer;
-use actix_web::HttpMessage;
 use attendance_rs::create_app;
 
 #[test]
@@ -44,8 +43,7 @@ fn attendance_management_works() {
     assert!(response.status().is_success());
 
     //get token
-    let res_body = srv.execute(response.body()).unwrap();
-    let token = String::from_utf8(res_body.to_vec()).unwrap();
+    let token = response.cookie("token").unwrap().value();
 
     //register
     let request = srv.client(Method::POST, "/register")
@@ -80,19 +78,20 @@ fn attendance_management_works() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
+    println!("{}", token);
     //get students
     let request = srv.client(Method::GET, "/students")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .finish()
         .unwrap();
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::OK);
 
     //get Student
     let request = srv.client(Method::GET, "/students/s32")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .finish()
         .unwrap();
 
@@ -102,7 +101,7 @@ fn attendance_management_works() {
 
     //get non-existing student
     let request = srv.client(Method::GET, "/students/s100")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .finish()
         .unwrap();
 
@@ -113,7 +112,7 @@ fn attendance_management_works() {
     //create new student
     let body = json!({"id": "s35", "name": "akhil", "roll_no": 35, "attendance": 55.0});
     let request = srv.client(Method::POST, "/students")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .json(body)
         .unwrap();
 
@@ -131,7 +130,7 @@ fn attendance_management_works() {
     //create student bad input
     let body = json!({"id": "s35", "name": "test", "roll_no": "int", "attendance": "float"});
     let request = srv.client(Method::POST, "/students")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .json(body)
         .unwrap();
 
@@ -142,7 +141,7 @@ fn attendance_management_works() {
     //cpdate student bad input
     let body = json!({"attendance": "float"});
     let request = srv.client(Method::PUT, "/students/s32")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .json(body)
         .unwrap();
 
@@ -152,7 +151,7 @@ fn attendance_management_works() {
     //update student
     let body = json!({"attendance": 33.33});
     let request = srv.client(Method::PUT, "/students/s32")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .json(body)
         .unwrap();
 
@@ -163,7 +162,7 @@ fn attendance_management_works() {
     //update non-existing student
     let body = json!({"attendance": 33.33});
     let request = srv.client(Method::GET, "/students/s100")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .json(body)
         .unwrap();
 
@@ -181,7 +180,7 @@ fn attendance_management_works() {
 
     //delete student
     let request = srv.client(Method::DELETE, "/students/s36")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .finish()
         .unwrap();
 
@@ -200,7 +199,7 @@ fn attendance_management_works() {
 
     //delete non-existing student
     let request = srv.client(Method::DELETE, "/students/s100")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Cookie", format!("token={}", token))
         .finish()
         .unwrap();
 

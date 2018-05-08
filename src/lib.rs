@@ -126,7 +126,15 @@ fn login(state: State<AppState>, user: Json<UserLogin>) -> FutureResponse<HttpRe
         .send(user.into_inner())
         .from_err()
         .and_then(|res| match res {
-            Ok(token) => Ok(HttpResponse::Ok().body(token)),
+            Ok(token) => Ok(HttpResponse::Ok()
+                .cookie(
+                    http::Cookie::build("token", token)
+                        .domain("localhost:8088")
+                        .path("/")
+                        .http_only(true)
+                        .finish(),
+                )
+                .finish()),
             Err(err) => match err {
                 MyError::BadPassword => Ok(HttpResponse::Unauthorized().body("Incorrect Password")),
                 MyError::UserNotFound => {
@@ -157,24 +165,16 @@ impl<S> Middleware<S> for Authorization {
         if req.path() == "/login" || req.path() == "/register" {
             Ok(Started::Done)
         } else {
-            let token = match req.headers_mut().get("Authorization") {
-                Some(t) => match t.to_str() {
-                    Ok(t) => t,
-                    Err(_) => {
-                        return Ok(Started::Response(
-                            HttpResponse::BadRequest().body("Token contains non ascii characters"),
-                        ))
-                    }
-                },
+            let token = match req.cookie("token") {
+                Some(cookie) => cookie.value(),
                 None => {
                     return Ok(Started::Response(
-                        HttpResponse::Unauthorized().body("Authorization token missing"),
+                        HttpResponse::Unauthorized().body("Authorization Token missing"),
                     ))
                 }
             };
 
-            let dec_token =
-                decode::<Claims>(&token[7..], "secret".as_ref(), &Validation::default());
+            let dec_token = decode::<Claims>(token, "secret".as_ref(), &Validation::default());
 
             match dec_token {
                 Ok(_) => Ok(Started::Done),
