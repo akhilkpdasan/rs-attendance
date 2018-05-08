@@ -206,4 +206,19 @@ fn attendance_management_works() {
     let response = srv.execute(request.send()).unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    //logout
+    let request = srv.client(Method::GET, "/logout")
+        .header("Cookie", format!("token={}", token))
+        .finish()
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert!(response.status().is_success());
+
+    //token expires in year 1970
+    let c = response.cookie("token").unwrap();
+
+    assert_eq!(c.expires().map(|t| t.tm_year), Some(70));
 }

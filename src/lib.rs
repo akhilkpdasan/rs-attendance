@@ -15,6 +15,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate bcrypt;
 extern crate env_logger;
+extern crate time;
 
 use actix::{Addr, Syn, SyncArbiter};
 use actix_web::http::*;
@@ -158,6 +159,13 @@ fn register(state: State<AppState>, user: Json<NewUser>) -> FutureResponse<HttpR
         .responder()
 }
 
+fn logout(_req: HttpRequest<AppState>) -> HttpResponse {
+    let cookie_str = "token=deleted; HttpOnly; Path=/; Domain=localhost:8088; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    HttpResponse::Ok()
+        .cookie(http::Cookie::parse(cookie_str).unwrap())
+        .finish()
+}
+
 struct Authorization {}
 
 impl<S> Middleware<S> for Authorization {
@@ -199,6 +207,7 @@ pub fn create_app() -> App<AppState> {
         .middleware(middleware::Logger::default())
         .middleware(Authorization {})
         .resource("/login", |r| r.method(Method::POST).with2(login))
+        .resource("/logout", |r| r.method(Method::GET).h(logout))
         .resource("/register", |r| r.method(Method::POST).with2(register))
         .resource("/students", |r| {
             cors::options().register(r);
