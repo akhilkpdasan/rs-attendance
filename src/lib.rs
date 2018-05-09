@@ -166,6 +166,16 @@ fn logout(_req: HttpRequest<AppState>) -> HttpResponse {
         .finish()
 }
 
+fn who_am_i(req: HttpRequest<AppState>) -> HttpResponse {
+    //Only logged in user can reach this handle
+    //so unwrap is fine
+    let token = req.cookie("token").unwrap().value();
+
+    let dec_token = decode::<Claims>(token, "secret".as_ref(), &Validation::default()).unwrap();
+
+    HttpResponse::Ok().body(dec_token.claims.username)
+}
+
 struct Authorization {}
 
 impl<S> Middleware<S> for Authorization {
@@ -208,6 +218,7 @@ pub fn create_app() -> App<AppState> {
         .middleware(Authorization {})
         .resource("/login", |r| r.method(Method::POST).with2(login))
         .resource("/logout", |r| r.method(Method::GET).h(logout))
+        .resource("/whoami", |r| r.method(Method::GET).h(who_am_i))
         .resource("/register", |r| r.method(Method::POST).with2(register))
         .resource("/students", |r| {
             cors::options().register(r);

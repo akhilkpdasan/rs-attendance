@@ -6,6 +6,7 @@ extern crate serde_json;
 
 use actix_web::http::{Method, StatusCode};
 use actix_web::test::TestServer;
+use actix_web::HttpMessage;
 use attendance_rs::create_app;
 
 #[test]
@@ -44,6 +45,17 @@ fn attendance_management_works() {
 
     //get token
     let token = response.cookie("token").unwrap().value();
+
+    //who_am_i returns username
+    let request = srv.client(Method::GET, "/whoami")
+        .header("Cookie", format!("token={}", token))
+        .finish()
+        .unwrap();
+    let response = srv.execute(request.send()).unwrap();
+    assert!(response.status().is_success());
+
+    let username = srv.execute(response.body()).unwrap();
+    assert_eq!(username, "test");
 
     //register
     let request = srv.client(Method::POST, "/register")
