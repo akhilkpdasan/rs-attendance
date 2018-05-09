@@ -82,7 +82,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::CONFLICT);
 
     //get students without token
     let request = srv.client(Method::GET, "/students").finish().unwrap();
@@ -90,7 +90,6 @@ fn attendance_management_works() {
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-    println!("{}", token);
     //get students
     let request = srv.client(Method::GET, "/students")
         .header("Cookie", format!("token={}", token))
@@ -132,12 +131,23 @@ fn attendance_management_works() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    //create student already existing
+    //create new student already existing
+    let body = json!({"id": "s35", "name": "akhil", "roll_no": 35, "attendance": 55.0});
+    let request = srv.client(Method::POST, "/students")
+        .header("Cookie", format!("token={}", token))
+        .json(body)
+        .unwrap();
+
+    let response = srv.execute(request.send()).unwrap();
+
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+
+    //create without token
     let body = json!({"id": "s35", "name": "akhil", "roll_no": 35, "attendance": 55.0});
     let request = srv.client(Method::POST, "/students").json(body).unwrap();
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_client_error());
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     //create student bad input
     let body = json!({"id": "s35", "name": "test", "roll_no": "int", "attendance": "float"});
@@ -150,7 +160,7 @@ fn attendance_management_works() {
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    //cpdate student bad input
+    //update student bad input
     let body = json!({"attendance": "float"});
     let request = srv.client(Method::PUT, "/students/s32")
         .header("Cookie", format!("token={}", token))

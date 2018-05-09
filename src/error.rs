@@ -6,5 +6,5 @@ pub enum MyError {
     TokenVerify,
     PasswordHash,
     UserNotFound,
-    UserExists,
+    Conflict,
 }

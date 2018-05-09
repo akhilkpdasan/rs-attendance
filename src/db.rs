@@ -1,6 +1,7 @@
 use bcrypt::{hash, verify, DEFAULT_COST};
 use diesel;
 use diesel::prelude::*;
+use diesel::result::{DatabaseErrorKind, Error::DatabaseError};
 use error::MyError;
 use jwt::{encode, Header};
 use models::{Claims, NewUser, Student, User};
@@ -50,6 +51,7 @@ pub fn new_student(conn: &PgConnection, student: &Student) -> Result<String, MyE
 
     match rows_inserted {
         Ok(_) => Ok(student.id.clone()),
+        Err(DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => Err(MyError::Conflict),
         Err(_) => Err(MyError::InternalError),
     }
 }
@@ -107,7 +109,7 @@ pub fn register_user(conn: &PgConnection, mut new_user: NewUser) -> Result<(), M
 
     match rows_inserted {
         Ok(1) => Ok(()),
-        Ok(0) => Err(MyError::UserExists),
+        Err(DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => Err(MyError::Conflict),
         _ => Err(MyError::InternalError),
     }
 }

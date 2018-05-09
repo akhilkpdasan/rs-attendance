@@ -76,6 +76,7 @@ fn new(state: State<AppState>, body: Json<Student>) -> FutureResponse<HttpRespon
         .from_err()
         .and_then(|res| match res {
             Ok(id) => Ok(HttpResponse::Ok().json(json!({ "URL": format!("/students/{}", id) }))),
+            Err(MyError::Conflict) => Ok(HttpResponse::Conflict().finish()),
             Err(_) => Ok(HttpResponse::InternalServerError().into()),
         })
         .responder()
@@ -154,7 +155,8 @@ fn register(state: State<AppState>, user: Json<NewUser>) -> FutureResponse<HttpR
         .from_err()
         .and_then(|res| match res {
             Ok(_) => Ok(HttpResponse::Ok().finish()),
-            Err(_) => Ok(HttpResponse::BadRequest().into()),
+            Err(MyError::Conflict) => Ok(HttpResponse::Conflict().into()),
+            Err(_) => Ok(HttpResponse::InternalServerError().finish()),
         })
         .responder()
 }
