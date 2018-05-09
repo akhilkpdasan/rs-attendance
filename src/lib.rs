@@ -178,11 +178,13 @@ fn who_am_i(req: HttpRequest<AppState>) -> HttpResponse {
     HttpResponse::Ok().body(dec_token.claims.username)
 }
 
-struct Authorization {}
+struct Authorization {
+    paths_to_ignore: Vec<&'static str>,
+}
 
 impl<S> Middleware<S> for Authorization {
     fn start(&self, req: &mut HttpRequest<S>) -> Result<Started> {
-        if req.path() == "/login" || req.path() == "/register" {
+        if self.paths_to_ignore.contains(&req.path()) {
             Ok(Started::Done)
         } else {
             let token = match req.cookie("token") {
@@ -217,7 +219,9 @@ pub fn create_app() -> App<AppState> {
     let addr = SyncArbiter::start(3, move || DbExecutor { pool: pool.clone() });
     App::with_state(AppState { db: addr.clone() })
         .middleware(middleware::Logger::default())
-        .middleware(Authorization {})
+        .middleware(Authorization {
+            paths_to_ignore: vec!["/login", "/register"],
+        })
         .resource("/login", |r| r.method(Method::POST).with2(login))
         .resource("/logout", |r| r.method(Method::GET).h(logout))
         .resource("/whoami", |r| r.method(Method::GET).h(who_am_i))
