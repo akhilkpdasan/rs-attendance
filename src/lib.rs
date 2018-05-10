@@ -19,7 +19,7 @@ extern crate time;
 
 use actix::{Addr, Syn, SyncArbiter};
 use actix_web::http::*;
-use actix_web::middleware::{Middleware, Started};
+use actix_web::middleware::{cors::Cors, Middleware, Started};
 use actix_web::*;
 use db_executor::*;
 use diesel::prelude::*;
@@ -31,7 +31,6 @@ use models::{Claims, NewUser, Student};
 use r2d2_diesel::ConnectionManager;
 use std::env;
 
-mod cors;
 mod db;
 mod db_executor;
 mod error;
@@ -131,7 +130,6 @@ fn login(state: State<AppState>, user: Json<UserLogin>) -> FutureResponse<HttpRe
             Ok(token) => Ok(HttpResponse::Ok()
                 .cookie(
                     http::Cookie::build("token", token)
-                        .domain("localhost:8088")
                         .path("/")
                         .http_only(true)
                         .finish(),
@@ -162,7 +160,7 @@ fn register(state: State<AppState>, user: Json<NewUser>) -> FutureResponse<HttpR
 }
 
 fn logout(_req: HttpRequest<AppState>) -> HttpResponse {
-    let cookie_str = "token=deleted; HttpOnly; Path=/; Domain=localhost:8088; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    let cookie_str = "token=deleted; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
     HttpResponse::Ok()
         .cookie(http::Cookie::parse(cookie_str).unwrap())
         .finish()
@@ -184,6 +182,9 @@ struct Authorization {
 
 impl<S> Middleware<S> for Authorization {
     fn start(&self, req: &mut HttpRequest<S>) -> Result<Started> {
+        if req.method() == &Method::OPTIONS {
+            return Ok(Started::Done);
+        }
         if self.paths_to_ignore.contains(&req.path()) {
             Ok(Started::Done)
         } else {
@@ -222,19 +223,28 @@ pub fn create_app() -> App<AppState> {
         .middleware(Authorization {
             paths_to_ignore: vec!["/login", "/register"],
         })
-        .resource("/login", |r| r.method(Method::POST).with2(login))
-        .resource("/logout", |r| r.method(Method::GET).h(logout))
-        .resource("/whoami", |r| r.method(Method::GET).h(who_am_i))
-        .resource("/register", |r| r.method(Method::POST).with2(register))
-        .resource("/students", |r| {
-            cors::options().register(r);
-            r.method(Method::GET).with(get_all);
-            r.method(Method::POST).with2(new);
-        })
-        .resource("/students/{sid}", |r| {
-            cors::options().register(r);
-            r.method(Method::GET).with2(get_one);
-            r.method(Method::PUT).with3(update);
-            r.method(Method::DELETE).with2(delete);
+        .configure(|app| {
+            Cors::for_app(app)
+            //.allowed_origin("http://localhost:3000")    // let CORS default to all
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            //.allowed_headers(vec![header::COOKIE, header::ACCEPT])
+            //.allowed_header(header::CONTENT_TYPE)
+            .supports_credentials()
+            .max_age(3600)
+
+            .resource("/login", |r| r.method(Method::POST).with2(login))
+            .resource("/logout", |r| r.method(Method::GET).h(logout))
+            .resource("/whoami", |r| r.method(Method::GET).h(who_am_i))
+            .resource("/register", |r| r.method(Method::POST).with2(register))
+            .resource("/students", |r| {
+                r.method(Method::GET).with(get_all);
+                r.method(Method::POST).with2(new);
+            })
+            .resource("/students/{sid}", |r| {
+                r.method(Method::GET).with2(get_one);
+                r.method(Method::PUT).with3(update);
+                r.method(Method::DELETE).with2(delete);
+            })
+        .register()
         })
 }
