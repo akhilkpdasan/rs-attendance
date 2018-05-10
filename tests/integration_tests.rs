@@ -21,7 +21,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_client_error());
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     //login non-existing user
     let request = srv.client(Method::POST, "/login")
@@ -31,7 +31,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_client_error());
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     //login
     let request = srv.client(Method::POST, "/login")
@@ -41,7 +41,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::OK);
 
     //get token
     let token = response.cookie("token").unwrap().value();
@@ -52,7 +52,7 @@ fn attendance_management_works() {
         .finish()
         .unwrap();
     let response = srv.execute(request.send()).unwrap();
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::OK);
 
     let username = srv.execute(response.body()).unwrap();
     assert_eq!(username, "test");
@@ -64,7 +64,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::OK);
 
     //register bad input
     let request = srv.client(Method::POST, "/register")
@@ -73,7 +73,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_client_error());
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     //register username exists
     let request = srv.client(Method::POST, "/register")
@@ -108,7 +108,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::OK);
 
     //get non-existing student
     let request = srv.client(Method::GET, "/students/s100")
@@ -179,7 +179,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
     //update non-existing student
     let body = json!({"attendance": 33.33});
@@ -198,7 +198,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_client_error());
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     //delete student
     let request = srv.client(Method::DELETE, "/students/s36")
@@ -217,7 +217,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_client_error());
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     //delete non-existing student
     let request = srv.client(Method::DELETE, "/students/s100")
@@ -237,7 +237,7 @@ fn attendance_management_works() {
 
     let response = srv.execute(request.send()).unwrap();
 
-    assert!(response.status().is_success());
+    assert_eq!(response.status(), StatusCode::OK);
 
     //token expires in year 1970
     let c = response.cookie("token").unwrap();
