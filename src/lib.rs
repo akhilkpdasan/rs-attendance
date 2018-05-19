@@ -34,14 +34,14 @@ use std::env;
 mod db;
 mod db_executor;
 mod error;
-mod models;
-mod schema;
+pub mod models;
+pub mod schema;
 
 pub struct AppState {
     db: Addr<Syn, DbExecutor>,
 }
 
-fn get_all(state: State<AppState>) -> FutureResponse<HttpResponse> {
+pub fn get_all(state: State<AppState>) -> FutureResponse<HttpResponse> {
     state
         .db
         .send(GetStudents {})
@@ -53,7 +53,7 @@ fn get_all(state: State<AppState>) -> FutureResponse<HttpResponse> {
         .responder()
 }
 
-fn get_one(state: State<AppState>, sid: Path<String>) -> FutureResponse<HttpResponse> {
+pub fn get_one(state: State<AppState>, sid: Path<String>) -> FutureResponse<HttpResponse> {
     state
         .db
         .send(GetStudent {
@@ -68,7 +68,7 @@ fn get_one(state: State<AppState>, sid: Path<String>) -> FutureResponse<HttpResp
         .responder()
 }
 
-fn new(state: State<AppState>, body: Json<Student>) -> FutureResponse<HttpResponse> {
+pub fn new(state: State<AppState>, body: Json<Student>) -> FutureResponse<HttpResponse> {
     state
         .db
         .send(body.into_inner())
@@ -82,11 +82,11 @@ fn new(state: State<AppState>, body: Json<Student>) -> FutureResponse<HttpRespon
 }
 
 #[derive(Deserialize, Debug)]
-struct Attendance {
+pub struct Attendance {
     attendance: f32,
 }
 
-fn update(
+pub fn update(
     state: State<AppState>,
     body: Json<Attendance>,
     sid: Path<String>,
@@ -106,7 +106,7 @@ fn update(
         .responder()
 }
 
-fn delete(state: State<AppState>, sid: Path<String>) -> FutureResponse<HttpResponse> {
+pub fn delete(state: State<AppState>, sid: Path<String>) -> FutureResponse<HttpResponse> {
     state
         .db
         .send(DeleteStudent {
@@ -121,7 +121,7 @@ fn delete(state: State<AppState>, sid: Path<String>) -> FutureResponse<HttpRespo
         .responder()
 }
 
-fn login(state: State<AppState>, user: Json<UserLogin>) -> FutureResponse<HttpResponse> {
+pub fn login(state: State<AppState>, user: Json<UserLogin>) -> FutureResponse<HttpResponse> {
     state
         .db
         .send(user.into_inner())
@@ -140,13 +140,14 @@ fn login(state: State<AppState>, user: Json<UserLogin>) -> FutureResponse<HttpRe
                 MyError::UserNotFound => {
                     Ok(HttpResponse::Unauthorized().body("User doesn't Exist"))
                 }
+                MyError::PasswordVerify => Ok(HttpResponse::InternalServerError().body("sad")),
                 _ => Ok(HttpResponse::InternalServerError().finish()),
             },
         })
         .responder()
 }
 
-fn register(state: State<AppState>, user: Json<NewUser>) -> FutureResponse<HttpResponse> {
+pub fn register(state: State<AppState>, user: Json<NewUser>) -> FutureResponse<HttpResponse> {
     state
         .db
         .send(user.into_inner())
@@ -159,14 +160,14 @@ fn register(state: State<AppState>, user: Json<NewUser>) -> FutureResponse<HttpR
         .responder()
 }
 
-fn logout(_req: HttpRequest<AppState>) -> HttpResponse {
+pub fn logout(_req: HttpRequest<AppState>) -> HttpResponse {
     let cookie_str = "token=deleted; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
     HttpResponse::Ok()
         .cookie(http::Cookie::parse(cookie_str).unwrap())
         .finish()
 }
 
-fn who_am_i(req: HttpRequest<AppState>) -> HttpResponse {
+pub fn who_am_i(req: HttpRequest<AppState>) -> HttpResponse {
     //Only logged in user can reach this handle
     //so unwrap is fine
     let token = req.cookie("token").unwrap().value();
@@ -176,8 +177,8 @@ fn who_am_i(req: HttpRequest<AppState>) -> HttpResponse {
     HttpResponse::Ok().body(dec_token.claims.username)
 }
 
-struct Authorization {
-    paths_to_ignore: Vec<&'static str>,
+pub struct Authorization {
+    pub paths_to_ignore: Vec<String>,
 }
 
 impl<S> Middleware<S> for Authorization {
@@ -185,7 +186,7 @@ impl<S> Middleware<S> for Authorization {
         if req.method() == &Method::OPTIONS {
             return Ok(Started::Done);
         }
-        if self.paths_to_ignore.contains(&req.path()) {
+        if self.paths_to_ignore.contains(&req.path().to_string()) {
             Ok(Started::Done)
         } else {
             let token = match req.cookie("token") {
@@ -209,6 +210,15 @@ impl<S> Middleware<S> for Authorization {
     }
 }
 
+pub type DbPool = r2d2::Pool<r2d2_diesel::ConnectionManager<diesel::PgConnection>>;
+
+pub type DbAddr = actix::Addr<actix::Syn, db_executor::DbExecutor>;
+
+pub fn build_app_state(pool: DbPool) -> AppState {
+    let addr = SyncArbiter::start(3, move || DbExecutor { pool: pool.clone() });
+    AppState { db: addr.clone() }
+}
+
 pub fn create_app() -> App<AppState> {
     dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -217,34 +227,32 @@ pub fn create_app() -> App<AppState> {
     let pool = r2d2::Pool::builder()
         .build(manager)
         .expect("Failed to create pool.");
-    let addr = SyncArbiter::start(3, move || DbExecutor { pool: pool.clone() });
-    App::with_state(AppState { db: addr.clone() })
+
+    let state = build_app_state(pool);
+
+    App::with_state(state)
         .middleware(middleware::Logger::default())
         .middleware(Authorization {
-            paths_to_ignore: vec!["/login", "/register"],
+            paths_to_ignore: vec!["/login".to_string(), "/register".to_string()],
         })
         .configure(|app| {
             Cors::for_app(app)
-            //.allowed_origin("http://localhost:3000")    // let CORS default to all
-            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
-            //.allowed_headers(vec![header::COOKIE, header::ACCEPT])
-            //.allowed_header(header::CONTENT_TYPE)
-            .supports_credentials()
-            .max_age(3600)
-
-            .resource("/login", |r| r.method(Method::POST).with2(login))
-            .resource("/logout", |r| r.method(Method::GET).h(logout))
-            .resource("/whoami", |r| r.method(Method::GET).h(who_am_i))
-            .resource("/register", |r| r.method(Method::POST).with2(register))
-            .resource("/students", |r| {
-                r.method(Method::GET).with(get_all);
-                r.method(Method::POST).with2(new);
-            })
-            .resource("/students/{sid}", |r| {
-                r.method(Method::GET).with2(get_one);
-                r.method(Method::PUT).with3(update);
-                r.method(Method::DELETE).with2(delete);
-            })
-        .register()
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                .supports_credentials()
+                .max_age(3600)
+                .resource("/login", |r| r.method(Method::POST).with2(login))
+                .resource("/logout", |r| r.method(Method::GET).h(logout))
+                .resource("/whoami", |r| r.method(Method::GET).h(who_am_i))
+                .resource("/register", |r| r.method(Method::POST).with2(register))
+                .resource("/students", |r| {
+                    r.method(Method::GET).with(get_all);
+                    r.method(Method::POST).with2(new);
+                })
+                .resource("/students/{sid}", |r| {
+                    r.method(Method::GET).with2(get_one);
+                    r.method(Method::PUT).with3(update);
+                    r.method(Method::DELETE).with2(delete);
+                })
+                .register()
         })
 }

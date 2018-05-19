@@ -89,7 +89,7 @@ pub fn login_user(
                     Err(MyError::BadPassword)
                 }
             }
-            Err(_) => Err(MyError::TokenVerify),
+            Err(_) => Err(MyError::PasswordVerify),
         },
         Err(_) => Err(MyError::UserNotFound),
     }
@@ -117,11 +117,44 @@ pub fn register_user(conn: &PgConnection, mut new_user: NewUser) -> Result<(), M
 #[cfg(test)]
 mod tests {
     use super::*;
+    use schema::students::dsl::*;
 
     fn connection() -> PgConnection {
-        let conn = PgConnection::establish("postgres://postgres@localhost/test_db").unwrap();
+        let conn =
+            PgConnection::establish("postgres://postgres@localhost/attendance_management").unwrap();
 
         let _ = conn.begin_test_transaction();
+
+        diesel::insert_into(students)
+            .values((
+                id.eq("s99"),
+                name.eq("bedki"),
+                roll_no.eq(32),
+                attendance.eq(12.0),
+            ))
+            .execute(&conn)
+            .unwrap();
+
+        diesel::insert_into(students)
+            .values((
+                id.eq("s89"),
+                name.eq("yogesh"),
+                roll_no.eq(36),
+                attendance.eq(16.0),
+            ))
+            .execute(&conn)
+            .unwrap();
+
+        diesel::insert_into(students)
+            .values((
+                id.eq("s02"),
+                name.eq("yogesh"),
+                roll_no.eq(36),
+                attendance.eq(16.0),
+            ))
+            .execute(&conn)
+            .unwrap();
+
         conn
     }
 
@@ -156,7 +189,7 @@ mod tests {
     fn update_student_works() {
         let conn = connection();
 
-        assert!(update_student(&conn, "s99", 29.0).is_ok());
+        assert!(update_student(&conn, "s89", 29.0).is_ok());
     }
 
     #[test]

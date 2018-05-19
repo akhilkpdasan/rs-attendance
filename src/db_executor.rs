@@ -113,7 +113,7 @@ impl Handler<UserLogin> for DbExecutor {
     type Result = Result<String, MyError>;
 
     fn handle(&mut self, msg: UserLogin, _: &mut Self::Context) -> Self::Result {
-        let conn: &PgConnection = &self.pool.get().unwrap();
+        let conn: &PgConnection = &self.pool.get().expect("Could not get connection");
 
         login_user(conn, &msg.username, &msg.password)
     }

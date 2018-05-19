@@ -11,7 +11,7 @@ environment:
   global:
     PGUSER: postgres
     PGPASSWORD: Password12!
-    DATABASE_URL: postgres://postgres:Password12!@localhost/test_db
+    DATABASE_URL: postgres://postgres:Password12!@localhost/attendance_management
 
 services:
   - postgresql95
@@ -30,8 +30,8 @@ install:
   - cargo install diesel_cli --no-default-features --features=postgres --force
 
 before_test:
-  - createdb test_db
-  - diesel migration --database-url postgres://postgres:Password12!@localhost/test_db --migration-dir test_migrations run
+  - diesel setup
+  - diesel migration run
   
 build: false
 
