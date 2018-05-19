@@ -1,14 +1,13 @@
 <template>
   <nav>
     <div class="nav-wrapper green">
-      <a href="#" class="brand-logo center">Student Attendance Management System</a>
+      <a href="#" class="brand-logo center">Attendance</a>
       <ul id="nav-mobile" class="right">
         <li v-if="username">
-          <router-link to="logout">Logout</router-link>
+          <a @click="logout">Logout</a>
         </li>
         <li v-else >
           <router-link to="login">Login</router-link>
-          <router-link to="register">Register</router-link>
         </li>
       </ul>
     </div>
@@ -16,12 +15,22 @@
 </template>
 
 <script>
+import api from '@/api.js'
+import store from '@/store'
+
 export default {
   name: 'Nav',
-  props:
-    {
-      username: String
+  computed: {
+    username: () => {
+      return store.state.username
     }
+  },
+  methods: {
+    logout: () => {
+      api.logout()
+      window.location.reload(true)
+    }
+  }
 }
 
 </script>

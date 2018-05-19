@@ -27,6 +27,7 @@
 
 <script>
 import api from '@/api.js'
+import store from '@/store'
 
 export default {
   name: 'Login',
@@ -38,10 +39,11 @@ export default {
   },
   methods: {
     login () {
-      api.post('/login', {
-        username: this.username,
-        password: this.password
-      })
+      api.login(this.username, this.password)
+        .then(response => {
+          store.commit('login', this.username)
+          this.$router.push('/')
+        })
     }
   }
 }

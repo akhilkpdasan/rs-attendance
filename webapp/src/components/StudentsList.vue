@@ -1,6 +1,16 @@
 <template>
   <table>
-    <Student v-for="student in students" :key="student.id" :student="student"/>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Roll No</th>
+        <th>Attendance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <Student v-for="student in students" :key="student.id" :student="student"/>
+    </tbody>
   </table>
 </template>
 
@@ -19,20 +29,11 @@ export default {
     }
   },
   mounted () {
-    api.get('/students').then(res => {
-      this.students = res.data
+    api.getStudents().then(response => {
+      this.students = response
     })
+    // console.log(getStudents())
+    // TODO catch authorization error
   }
 }
 </script>
-
-<style>
-table {
-  border: 1px solid;
-  border-collapse: collapse;
-}
-
-td {
-  border: 1px solid;
-}
-</style>
