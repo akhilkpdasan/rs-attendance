@@ -193,7 +193,10 @@ impl<S> Middleware<S> for Authorization {
                 Some(cookie) => cookie.value(),
                 None => {
                     return Ok(Started::Response(
-                        HttpResponse::Unauthorized().body("Authorization Token missing"),
+                        HttpResponse::Unauthorized()
+                            .header("Access-Control-Allow-Origin", "http://localhost:8080")
+                            .header("Access-Control-Allow-Credentials", "true")
+                            .body("Authorization Token missing"),
                     ))
                 }
             };
@@ -238,6 +241,7 @@ pub fn create_app() -> App<AppState> {
         .configure(|app| {
             Cors::for_app(app)
                 .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                .allowed_origin("http://localhost:8080")
                 .supports_credentials()
                 .max_age(3600)
                 .resource("/login", |r| r.method(Method::POST).with2(login))
