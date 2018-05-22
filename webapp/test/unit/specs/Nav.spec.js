@@ -1,38 +1,63 @@
+import flushPromises from 'flush-promises'
 import { mount, createLocalVue } from '@vue/test-utils'
 import VueRouter from 'vue-router'
+import Vuex from 'vuex'
 import Nav from '@/components/Nav'
+jest.mock('@/api.js')
+
+const localVue = createLocalVue()
+localVue.use(Vuex)
+localVue.use(VueRouter)
 
 describe('Nav', () => {
-  test('shows logout link if user is logged in', () => {
-    const localVue = createLocalVue()
-    localVue.use(VueRouter)
+  let store
+  let router
+  let actions
 
-    const router = new VueRouter()
-
-    const wrapper = mount(Nav, {
-      localVue,
-      router,
-      propsData: {
-        username: 'akhil'
-      }
+  beforeEach(() => {
+    router = new VueRouter()
+    actions = {
+      logout: jest.fn()
+    }
+    store = new Vuex.Store({
+      state: {
+        username: 'frontend'
+      },
+      actions
     })
-    const links = wrapper.vm.$el.querySelectorAll('a')
-    console.log(links)
-    expect(links[1].href).toBe('about:blank#/logout')
   })
 
-  test('shows login and register link if user is  not logged in', () => {
-    const localVue = createLocalVue()
-    localVue.use(VueRouter)
-
-    const router = new VueRouter()
-
+  test('shows logout link if user is logged in', () => {
     const wrapper = mount(Nav, {
       localVue,
+      store,
+      router
+    })
+    const link = wrapper.findAll('a').at(1)
+    expect(link.text()).toBe('Logout')
+  })
+
+  test('clicking logout call logout action in store', async () => {
+    const wrapper = mount(Nav, {
+      localVue,
+      store,
+      router
+    })
+
+    wrapper.findAll('a').at(1).trigger('click')
+    await flushPromises()
+
+    expect(actions.logout).toHaveBeenCalled()
+  })
+
+  test('shows login link if user is  not logged in', () => {
+    store.state.username = ''
+    const wrapper = mount(Nav, {
+      localVue,
+      store,
       router
     })
     const links = wrapper.vm.$el.querySelectorAll('a')
     expect(links[1].href).toBe('about:blank#/login')
-    expect(links[2].href).toBe('about:blank#/register')
   })
 })

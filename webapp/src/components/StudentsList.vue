@@ -1,17 +1,20 @@
 <template>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Roll No</th>
-        <th>Attendance</th>
-      </tr>
-    </thead>
-    <tbody>
-      <Student v-for="student in students" :key="student.id" :student="student"/>
-    </tbody>
-  </table>
+  <div class="container">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Roll No</th>
+          <th>Attendance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <Student v-for="student in students" :key="student.id" :student="student"/>
+      </tbody>
+    </table>
+    <p v-if="error" class="error">{{ error }}</p>
+  </div>
 </template>
 
 <script>
@@ -22,18 +25,33 @@ export default {
   components: {
     Student
   },
-  props: ['username'],
   data () {
     return {
-      students: []
+      students: [],
+      error: ''
     }
   },
   mounted () {
     api.getStudents().then(response => {
       this.students = response.data
     })
-    // console.log(getStudents())
-    // TODO catch authorization error
+      .catch(error => {
+        if (error.response) {
+          if (error.response.status === 401) {
+            this.$router.push('login')
+          } else {
+            this.error = 'Interenal server error occured'
+          }
+        } else {
+          this.error = 'Unknown error occured'
+        }
+      })
   }
 }
 </script>
+
+<style>
+.error {
+  color: tomato
+}
+</style>

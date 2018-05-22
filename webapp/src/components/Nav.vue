@@ -1,7 +1,7 @@
 <template>
   <nav>
     <div class="nav-wrapper green">
-      <a href="#" class="brand-logo center">Attendance</a>
+      <a href="#" class="brand-logo center">Attendance management</a>
       <ul id="nav-mobile" class="right">
         <li v-if="username">
           <a @click="logout">Logout</a>
@@ -16,19 +16,20 @@
 
 <script>
 import api from '@/api.js'
-import store from '@/store'
 
 export default {
   name: 'Nav',
   computed: {
-    username: () => {
-      return store.state.username
+    username () {
+      return this.$store.state.username
     }
   },
   methods: {
-    logout: () => {
-      api.logout()
-      window.location.reload(true)
+    logout () {
+      api.logout().then(response => {
+        this.$store.dispatch('logout')
+        this.$router.push('login')
+      })
     }
   }
 }

@@ -1,7 +1,6 @@
 <template>
   <div id="app">
-<!--<img src="./assets/logo.png">-->
-  <Navbar :username=username />
+    <Navbar />
     <router-view />
   </div>
 </template>
@@ -13,11 +12,6 @@ export default {
   name: 'App',
   components: {
     Navbar
-  },
-  data () {
-    return {
-      username: ''
-    }
   }
 }
 </script>

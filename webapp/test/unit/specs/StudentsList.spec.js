@@ -1,15 +1,14 @@
 import { mount } from '@vue/test-utils'
 import StudentsList from '@/components/StudentsList'
+import flushPromises from 'flush-promises'
+jest.mock('@/api.js')
 
 describe('StudentsList', () => {
-  test('displays students passed as props', () => {
+  test('displays students', async () => {
     const wrapper = mount(StudentsList, {
-      propsData: {
-        students: [
-          {id: 's35', name: 'akhil', roll_no: 35, attendance: 100.0}
-        ]
-      }
     })
+
+    await flushPromises()
     const id = wrapper.findAll('td').at(0)
     const name = wrapper.findAll('td').at(1)
     const rollNo = wrapper.findAll('td').at(2)
@@ -18,5 +17,37 @@ describe('StudentsList', () => {
     expect(name.text()).toBe('akhil')
     expect(rollNo.text()).toBe('35')
     expect(attendance.text()).toBe('100.0')
+  })
+
+  test('handles unauthorization error', async () => {
+    const $router = {}
+    $router.push = jest.fn()
+
+    mount(StudentsList, {
+      mocks: {
+        $router
+      }
+    })
+    await flushPromises()
+
+    expect($router.push).toHaveBeenCalledWith('login')
+  })
+
+  test('handles internal server error', async () => {
+    const wrapper = mount(StudentsList, {
+    })
+    await flushPromises()
+
+    const error = wrapper.find('.error')
+    expect(error.text()).toBe('Interenal server error occured')
+  })
+
+  test('handles unknown error', async () => {
+    const wrapper = mount(StudentsList, {
+    })
+    await flushPromises()
+
+    const error = wrapper.find('.error')
+    expect(error.text()).toBe('Unknown error occured')
   })
 })

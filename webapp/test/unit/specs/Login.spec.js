@@ -1,11 +1,10 @@
+import flushPromises from 'flush-promises'
 import { mount, createLocalVue } from '@vue/test-utils'
 import Vuex from 'vuex'
 import Login from '@/components/Login'
-import flushPromises from 'flush-promises'
 jest.mock('@/api.js')
 
 const localVue = createLocalVue()
-
 localVue.use(Vuex)
 
 describe('Login', () => {

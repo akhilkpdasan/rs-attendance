@@ -7,6 +7,7 @@ const store = new Vuex.Store({
   state: {
     username: ''
   },
+
   mutations: {
     login (state, username) {
       state.username = username
@@ -15,9 +16,13 @@ const store = new Vuex.Store({
       state.username = ''
     }
   },
+
   actions: {
     login ({ commit }, username) {
       commit('login', username)
+    },
+    logout ({ commit }) {
+      commit('logout')
     }
   }
 })
