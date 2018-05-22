@@ -19,7 +19,8 @@
       </div>
     <div class="row">
       <div class="col offset-s3">
-        <button @click="login" class="btn waves-effect waves-light green offset-s3">Submit</button>
+        <button @click="login" id="submit" class="btn waves-effect waves-light green offset-s3">Submit</button>
+        <p class="error" v-if="error">{{ error }}</p>
       </div>
     </div>
   </div>
@@ -27,22 +28,33 @@
 
 <script>
 import api from '@/api.js'
-import store from '@/store'
 
 export default {
   name: 'Login',
   data () {
     return {
       username: '',
-      password: ''
+      password: '',
+      error: ''
     }
   },
   methods: {
     login () {
       api.login(this.username, this.password)
         .then(response => {
-          store.commit('login', this.username)
+          this.$store.dispatch('login', {username: this.username})
           this.$router.push('/')
+        })
+        .catch(error => {
+          if (error.response) {
+            if (error.response.status === 401) {
+              this.error = 'Bad username or password'
+            } else if (error.response.status > 499) {
+              this.error = 'An internal server error has occured'
+            }
+          } else {
+            this.error = 'An unknown error has occured'
+          }
         })
     }
   }
@@ -52,5 +64,9 @@ export default {
 <style>
 h3 {
   color: grey;
+}
+
+.error {
+  color: tomato;
 }
 </style>

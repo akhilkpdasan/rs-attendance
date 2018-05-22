@@ -30,7 +30,7 @@ export default {
   },
   mounted () {
     api.getStudents().then(response => {
-      this.students = response
+      this.students = response.data
     })
     // console.log(getStudents())
     // TODO catch authorization error

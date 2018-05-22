@@ -9,10 +9,15 @@ const store = new Vuex.Store({
   },
   mutations: {
     login (state, username) {
-      this.state.username = username
+      state.username = username
     },
     logout (state) {
-      this.state.username = ''
+      state.username = ''
+    }
+  },
+  actions: {
+    login ({ commit }, username) {
+      commit('login', username)
     }
   }
 })

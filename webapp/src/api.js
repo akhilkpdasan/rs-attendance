@@ -12,22 +12,13 @@ const config = axios.create({
 export default {
   getStudents () {
     return config.get('/students')
-      .then(response => {
-        return response.data
-      })
   },
 
   login (username, password) {
     return config.post('/login', {'username': username, 'password': password})
-      .then(response => {
-        return response.data
-      })
   },
 
   logout () {
     return config.get('/logout')
-      .then(response => {
-        return response.data
-      })
   }
 }
