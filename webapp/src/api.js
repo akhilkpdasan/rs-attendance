@@ -20,5 +20,19 @@ export default {
 
   logout () {
     return config.get('/logout')
+  },
+
+  newStudent (sid, name, rollNo, attendance) {
+    let student = {
+      'id': sid,
+      'name': name,
+      'roll_no': parseInt(rollNo),
+      'attendance': parseFloat(attendance)
+    }
+    return config.post('/students', student)
+  },
+
+  whoami () {
+    return config.get('/whoami')
   }
 }

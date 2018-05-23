@@ -67,5 +67,36 @@ export default {
     return (new Promise(resolve => {
       resolve()
     }))
+  },
+
+  newStudent (sid, name, rollNo, attendance) {
+    if (name === '') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.response = {status: 400}
+        reject(error)
+      }))
+    } else if (name === 'unauthorized') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.response = {status: 401}
+        reject(error)
+      }))
+    } else if (name === 'internal') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.response = {status: 500}
+        reject(error)
+      }))
+    } else if (name === 'unknown') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        reject(error)
+      }))
+    } else {
+      return (new Promise(resolve => {
+        resolve()
+      }))
+    }
   }
 }
