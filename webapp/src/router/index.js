@@ -10,10 +10,10 @@ import DeleteStudent from '@/components/DeleteStudent.vue'
 Vue.use(Router)
 
 export default new Router({
+  linkActiveClass: 'active',
   routes: [
     {
-      path: '/',
-      name: 'StudentsList',
+      path: '/students',
       component: StudentsList
     },
     {
@@ -21,11 +21,11 @@ export default new Router({
       component: NewStudent
     },
     {
-      path: '/update/:sid',
+      path: '/update',
       component: UpdateStudent
     },
     {
-      path: '/delete/:sid',
+      path: '/delete',
       component: DeleteStudent
     },
     {

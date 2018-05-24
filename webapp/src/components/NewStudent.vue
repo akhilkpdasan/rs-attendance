@@ -56,20 +56,10 @@ export default {
     newStudent () {
       api.newStudent(this.sid, this.name, this.roll_no, this.attendance)
         .then(response => {
-          this.$router.push('/')
+          this.$router.push('/students')
         })
         .catch(error => {
-          if (error.response) {
-            if (error.response.status === 401) {
-              this.$router.push('login')
-            } else if (error.response.status === 400) {
-              this.error = 'Incorrect student details'
-            } else if (error.response.status > 499) {
-              this.error = 'An internal server error has occured'
-            }
-          } else {
-            this.error = 'An unknown error has occured'
-          }
+          this.error = error.msg
         })
     }
   }

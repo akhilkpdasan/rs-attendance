@@ -43,18 +43,10 @@ export default {
       api.login(this.username, this.password)
         .then(response => {
           this.$store.dispatch('login', {username: this.username})
-          this.$router.push('/')
+          this.$router.push('/students')
         })
         .catch(error => {
-          if (error.response) {
-            if (error.response.status === 401) {
-              this.error = 'Bad username or password'
-            } else if (error.response.status > 499) {
-              this.error = 'An internal server error has occured'
-            }
-          } else {
-            this.error = 'An unknown error has occured'
-          }
+          this.error = error.msg
         })
     }
   }

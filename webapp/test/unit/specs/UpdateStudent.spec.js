@@ -1,20 +1,18 @@
 import flushPromises from 'flush-promises'
 import { mount } from '@vue/test-utils'
-import NewStudent from '@/components/NewStudent'
+import UpdateStudent from '@/components/UpdateStudent'
 jest.mock('@/api.js')
 
-describe('NewStudent', () => {
-  test('submit button calls new with student details', async () => {
+describe('UpdateStudent', () => {
+  test('submit button calls delete with student id', async () => {
     const $router = { push: jest.fn() }
-    const wrapper = mount(NewStudent, {
+    const wrapper = mount(UpdateStudent, {
       mocks: {
         $router
       }
     })
 
-    wrapper.vm.$data.id = 's35'
-    wrapper.vm.$data.name = 'akhil'
-    wrapper.vm.$data.roll_no = '35'
+    wrapper.vm.$data.sid = 's35'
     wrapper.vm.$data.attendance = '100.0'
     wrapper.find('#submit').trigger('click')
 
@@ -23,7 +21,7 @@ describe('NewStudent', () => {
   })
 
   test('handles bad input error', async () => {
-    const wrapper = mount(NewStudent)
+    const wrapper = mount(UpdateStudent)
     wrapper.find('#submit').trigger('click')
 
     await flushPromises()
@@ -32,13 +30,13 @@ describe('NewStudent', () => {
 
   test('handles unauthorized error', async () => {
     const $router = {push: jest.fn()}
-    const wrapper = mount(NewStudent, {
+    const wrapper = mount(UpdateStudent, {
       mocks: {
         $router
       }
     })
 
-    wrapper.vm.$data.name = 'unauthorized'
+    wrapper.vm.$data.sid = 'unauthorized'
     wrapper.find('#submit').trigger('click')
 
     await flushPromises()
@@ -47,9 +45,9 @@ describe('NewStudent', () => {
   })
 
   test('handles internal error', async () => {
-    const wrapper = mount(NewStudent)
+    const wrapper = mount(UpdateStudent)
 
-    wrapper.vm.$data.name = 'internal'
+    wrapper.vm.$data.sid = 'internal'
     wrapper.find('#submit').trigger('click')
 
     await flushPromises()

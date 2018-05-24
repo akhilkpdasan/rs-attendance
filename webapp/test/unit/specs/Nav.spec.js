@@ -27,14 +27,22 @@ describe('Nav', () => {
     })
   })
 
-  test('shows logout link if user is logged in', () => {
+  test('shows user nav links if user is logged in', () => {
     const wrapper = mount(Nav, {
       localVue,
       store,
       router
     })
-    const link = wrapper.findAll('a').at(1)
-    expect(link.text()).toBe('Logout')
+    const students = wrapper.findAll('a').at(1)
+    const newStudent = wrapper.findAll('a').at(2)
+    const update = wrapper.findAll('a').at(3)
+    const deleteStudent = wrapper.findAll('a').at(4)
+    const logout = wrapper.findAll('a').at(5)
+    expect(students.text()).toBe('Students')
+    expect(newStudent.text()).toBe('New')
+    expect(update.text()).toBe('Update')
+    expect(deleteStudent.text()).toBe('Delete')
+    expect(logout.text()).toBe('Logout')
   })
 
   test('clicking logout call logout action in store', async () => {
@@ -44,7 +52,7 @@ describe('Nav', () => {
       router
     })
 
-    wrapper.findAll('a').at(1).trigger('click')
+    wrapper.findAll('a').at(5).trigger('click')
     await flushPromises()
 
     expect(actions.logout).toHaveBeenCalled()
@@ -60,4 +68,6 @@ describe('Nav', () => {
     const links = wrapper.vm.$el.querySelectorAll('a')
     expect(links[1].href).toBe('about:blank#/login')
   })
+
+  // TODO test nav links for logged in users
 })

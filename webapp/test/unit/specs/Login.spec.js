@@ -48,7 +48,7 @@ describe('Login', () => {
     await flushPromises()
 
     expect(actions.login.mock.calls.length).toBe(0)
-    expect(wrapper.find('p').text()).toBe('Bad username or password')
+    expect(wrapper.find('p').text()).toBe('Incorrect username or password')
   })
 
   test('IntrenalServerError is shown', async () => {
@@ -63,21 +63,6 @@ describe('Login', () => {
     await flushPromises()
 
     expect(actions.login.mock.calls.length).toBe(0)
-    expect(wrapper.find('p').text()).toBe('An internal server error has occured')
-  })
-
-  test('Unknown error is shown', async () => {
-    const wrapper = mount(Login, {
-      localVue,
-      store
-    })
-
-    wrapper.vm.$data.username = 'unknown'
-    wrapper.find('#submit').trigger('click')
-
-    await flushPromises()
-
-    expect(actions.login.mock.calls.length).toBe(0)
-    expect(wrapper.find('p').text()).toBe('An unknown error has occured')
+    expect(wrapper.find('p').text()).toBe('Interenal server error occured')
   })
 })

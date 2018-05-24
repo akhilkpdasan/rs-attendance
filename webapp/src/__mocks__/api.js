@@ -8,18 +8,33 @@ export default {
     } else if (username === 'wrong') {
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        error.response = {status: 401}
+        error.msg = 'Incorrect username or password'
         reject(error)
       }))
     } else if (username === 'internal') {
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        error.response = {status: 500}
+        error.msg = 'Interenal server error occured'
         reject(error)
       }))
-    } else {
+    }
+  },
+
+  register (username, password, email) {
+    if (username === 'success') {
+      return (new Promise(resolve => {
+        resolve('Success')
+      }))
+    } else if (username === 'conflict') {
       return (new Promise((resolve, reject) => {
         let error = new Error()
+        error.msg = 'Username already taken'
+        reject(error)
+      }))
+    } else if (username === 'internal') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.msg = 'Interenal server error occured'
         reject(error)
       }))
     }
@@ -36,28 +51,20 @@ export default {
           attendance: '100.0'
         }]
 
-        let response = {}
-        response.data = students
-        response.status = 200
-        resolve(response)
+        resolve(students)
       }))
     } else if (getStudentsCalled === 1) {
       getStudentsCalled = 2
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        error.response = {status: 401}
+        error.msg = 'Please login'
         reject(error)
       }))
     } else if (getStudentsCalled === 2) {
       getStudentsCalled = 3
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        error.response = {status: 500}
-        reject(error)
-      }))
-    } else {
-      return (new Promise((resolve, reject) => {
-        let error = new Error()
+        error.msg = 'Internal server error occured'
         reject(error)
       }))
     }
@@ -73,25 +80,72 @@ export default {
     if (name === '') {
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        error.response = {status: 400}
+        error.msg = 'Incorrect student details'
         reject(error)
       }))
     } else if (name === 'unauthorized') {
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        error.response = {status: 401}
+        error.msg = 'Please login'
         reject(error)
       }))
     } else if (name === 'internal') {
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        error.response = {status: 500}
+        error.msg = 'Internal server error occured'
         reject(error)
       }))
-    } else if (name === 'unknown') {
+    } else {
+      return (new Promise(resolve => {
+        resolve()
+      }))
+    }
+  },
+
+  deleteStudent (sid) {
+    if (sid === '') {
       return (new Promise((resolve, reject) => {
         let error = new Error()
-        reject(error)
+        error.msg = 'Incorrect student details'
+        return reject(error)
+      }))
+    } else if (sid === 'unauthorized') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.msg = 'Please login'
+        return reject(error)
+      }))
+    } else if (sid === 'internal') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.msg = 'Internal server error occured'
+        return reject(error)
+      }))
+    } else {
+      return (new Promise(resolve => {
+        resolve()
+      }))
+    }
+  },
+
+  updateStudent (sid, attendance) {
+    if (sid === '') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.msg = 'Incorrect student details'
+        return reject(error)
+      }))
+    } else if (sid === 'unauthorized') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.msg = 'Please login'
+        return reject(error)
+      }))
+    } else if (sid === 'internal') {
+      return (new Promise((resolve, reject) => {
+        let error = new Error()
+        error.msg = 'Internal server error occured'
+        return reject(error)
       }))
     } else {
       return (new Promise(resolve => {

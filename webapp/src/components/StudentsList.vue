@@ -32,19 +32,11 @@ export default {
     }
   },
   mounted () {
-    api.getStudents().then(response => {
-      this.students = response.data
+    api.getStudents().then(students => {
+      this.students = students
     })
-      .catch(error => {
-        if (error.response) {
-          if (error.response.status === 401) {
-            this.$router.push('login')
-          } else {
-            this.error = 'Interenal server error occured'
-          }
-        } else {
-          this.error = 'Unknown error occured'
-        }
+      .catch(err => {
+        this.error = err.msg
       })
   }
 }

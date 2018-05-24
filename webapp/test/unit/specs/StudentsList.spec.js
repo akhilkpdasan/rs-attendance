@@ -23,14 +23,16 @@ describe('StudentsList', () => {
     const $router = {}
     $router.push = jest.fn()
 
-    mount(StudentsList, {
+    let wrapper = mount(StudentsList, {
       mocks: {
         $router
       }
     })
     await flushPromises()
 
-    expect($router.push).toHaveBeenCalledWith('login')
+    // expect($router.push).toHaveBeenCalledWith('login')
+    const error = wrapper.find('.error')
+    expect(error.text()).toBe('Please login')
   })
 
   test('handles internal server error', async () => {
@@ -39,15 +41,6 @@ describe('StudentsList', () => {
     await flushPromises()
 
     const error = wrapper.find('.error')
-    expect(error.text()).toBe('Interenal server error occured')
-  })
-
-  test('handles unknown error', async () => {
-    const wrapper = mount(StudentsList, {
-    })
-    await flushPromises()
-
-    const error = wrapper.find('.error')
-    expect(error.text()).toBe('Unknown error occured')
+    expect(error.text()).toBe('Internal server error occured')
   })
 })
