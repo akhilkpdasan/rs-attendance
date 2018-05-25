@@ -1,6 +1,7 @@
 extern crate actix_web;
 extern crate attendance_rs;
 extern crate diesel;
+extern crate dotenv;
 extern crate r2d2;
 extern crate r2d2_diesel;
 
@@ -10,10 +11,7 @@ use test_server::actix_web::test::TestServer;
 
 pub fn create_server(urls: Vec<String>) -> (TestServer, DbPool) {
     use std::env;
-    ::std::env::set_var(
-        "DATABASE_URL",
-        "postgres://postgres@localhost/attendance_management",
-    );
+    dotenv::dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").unwrap();
     let manager = r2d2_diesel::ConnectionManager::<diesel::PgConnection>::new(database_url);
