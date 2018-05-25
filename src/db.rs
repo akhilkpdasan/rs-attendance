@@ -89,7 +89,7 @@ pub fn login_user(
                     Err(MyError::BadPassword)
                 }
             }
-            Err(_) => Err(MyError::PasswordVerify),
+            Err(_) => Err(MyError::PasswordVerify)
         },
         Err(_) => Err(MyError::UserNotFound),
     }

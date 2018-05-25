@@ -13,9 +13,9 @@ pub struct Student {
 #[derive(Queryable, PartialEq, Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
-    pub email: String,
     pub username: String,
     pub password: String,
+    pub email: String,
 }
 
 #[derive(Insertable, Serialize, Deserialize)]
