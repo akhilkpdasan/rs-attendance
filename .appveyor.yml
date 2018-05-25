@@ -13,6 +13,10 @@ environment:
     PGPASSWORD: Password12!
     DATABASE_URL: postgres://postgres:Password12!@localhost/attendance_management
 
+matrix:
+  allow_failures:
+    - channel: nightly
+
 services:
   - postgresql95
 

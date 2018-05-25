@@ -4,6 +4,10 @@ rust:
   - nightly
   - stable
 
+matrix:
+  allow_failures:
+    - rust: nightly
+
 services:
   - postgresql
 
